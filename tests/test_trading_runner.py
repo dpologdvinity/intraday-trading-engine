@@ -39,6 +39,8 @@ class Exchange:
         self.posts = []
 
     def request(self, method, path, body=None):
+        if path.startswith("/v2/account/activities/"):
+            return []
         if path == "/v2/account":
             return {"id": "paper-1", "status": "ACTIVE", "cash": str(self.cash)}
         if path == "/v2/clock":

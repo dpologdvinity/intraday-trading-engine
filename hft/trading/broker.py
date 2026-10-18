@@ -126,7 +126,8 @@ class PortfolioBroker:
                     raise ValueError("stock budgets exceed the paper account's non-borrowed cash")
                 self.remote_initial_cash = decimal(self.account_snapshot["cash"])
                 self.cash_anchor = None
-                self.income_ids = set()
+                # Activities posted before the run are already in its starting cash.
+                self.income_ids = {r.get("id") for r in self._cash_activities()}
                 for symbol, budget in self.budgets.items():
                     self.books[symbol] = book_class(
                         self, symbol, Account(budget, costs), risk_factory(symbol)
@@ -222,13 +223,9 @@ class PortfolioBroker:
         on the same account) is recorded as external. Returns the total booked to the
         run's ledgers, or None when the activities do not explain the difference.
         """
-        rows = []
-        for kind in ("DIV", "FEE"):
-            query = urlencode({"direction": "desc", "page_size": 100})
-            rows += self.client.request("GET", f"/v2/account/activities/{kind}?{query}") or []
         new = [
             r
-            for r in rows
+            for r in self._cash_activities()
             if r.get("id") not in self.income_ids
             and (
                 str(r.get("activity_type", "")).startswith("DIV")
@@ -258,6 +255,14 @@ class PortfolioBroker:
                     external.append({"id": r["id"], "date": r.get("date"), "amount": str(amount)})
             self.income_ids.add(r["id"])
         return booked
+
+    def _cash_activities(self):
+        """The latest dividend and fee activities on the account."""
+        rows = []
+        for kind in ("DIV", "FEE"):
+            query = urlencode({"direction": "desc", "page_size": 100})
+            rows += self.client.request("GET", f"/v2/account/activities/{kind}?{query}") or []
+        return rows
 
     def _sale_proceeds(self, day):
         """Sale proceeds per stock of this run on `day` (New York date)."""

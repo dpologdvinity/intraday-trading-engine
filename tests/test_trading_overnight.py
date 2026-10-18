@@ -78,6 +78,8 @@ class Exchange:
     def request(self, method, path, body=None):
         for order in self.orders.values():
             self._settle(order)
+        if path.startswith("/v2/account/activities/"):
+            return []
         if path == "/v2/account":
             return {"id": "paper-1", "status": "ACTIVE", "cash": str(self.cash)}
         if path == "/v2/clock":

@@ -319,6 +319,28 @@ def test_regulatory_fees_for_another_runs_trades_are_recorded_as_external(tmp_pa
         broker.close()
 
 
+def test_fees_posted_before_a_run_started_are_not_counted_again(tmp_path):
+    """news-picks stopped on 2026-10-12: the fresh run counted the 10-08 fees, already
+    in its starting cash, together with the new 10-09 fees and found no match."""
+    exchange = Exchange()
+    exchange.activities = [
+        {"id": "f1", "activity_type": "FEE", "date": "2026-10-08", "net_amount": "-0.39"},
+        {"id": "f2", "activity_type": "FEE", "date": "2026-10-08", "net_amount": "-0.01"},
+    ]
+    broker = portfolio(tmp_path, exchange)
+    try:
+        assert broker.reconcile()
+        exchange.cash -= Decimal("0.09")
+        exchange.activities += [
+            {"id": "f3", "activity_type": "FEE", "date": "2026-10-09", "net_amount": "-0.08"},
+            {"id": "f4", "activity_type": "FEE", "date": "2026-10-09", "net_amount": "-0.01"},
+        ]
+        assert broker.reconcile()
+        assert [f["id"] for f in broker.extra["external_fees"]] == ["f3", "f4"]
+    finally:
+        broker.close()
+
+
 def test_fees_on_days_the_run_sold_are_split_by_sale_proceeds(tmp_path):
     exchange = Exchange()
     broker = portfolio(tmp_path, exchange)
