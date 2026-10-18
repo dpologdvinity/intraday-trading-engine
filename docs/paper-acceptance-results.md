@@ -89,3 +89,14 @@ session is Monday 2026-10-12: data refresh 08:55 ET, picks after 09:30, sells at
 Starting it needed two fixes (7da1a49): scheduled runs poll prices over REST, so the
 30-symbol stream limit no longer applies to them (up to 100), and one latest-trades
 request now covers up to 100 symbols.
+
+## 2026-10-12: news-picks stopped before its first session
+
+The host computer slept from Saturday 10-10 until Monday 10-12 19:55 ET, so the run
+skipped Monday's refresh, picks and trades. On waking it reconciled the account and
+stopped on a cash mismatch: Alpaca had posted $0.09 of fees for the overnight run's
+10-09 sales, but the fresh run also counted the 10-08 fees ($0.40) that were already
+in its starting cash, so the activities did not explain the difference. A new run now
+marks the account's existing dividend and fee activities as booked (b4fb454). The run
+had no trades; it was restarted fresh on 2026-10-18 and first trades Monday 10-19.
+The bot cannot trade while the computer sleeps or after a reboot until restarted.
