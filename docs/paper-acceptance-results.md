@@ -100,3 +100,9 @@ in its starting cash, so the activities did not explain the difference. A new ru
 marks the account's existing dividend and fee activities as booked (b4fb454). The run
 had no trades; it was restarted fresh on 2026-10-18 and first trades Monday 10-19.
 The bot cannot trade while the computer sleeps or after a reboot until restarted.
+
+## 2026-10-19: first news-picks session
+
+The run refreshed its data at 08:55, picked INTC, NBIS and CRWV at 09:30, bought from
+09:31 and sold at 15:55: -$83.66 (-2.8% of the $2,950 invested). Each session's
+results are now recorded in the [forward record](news-picks-forward.md).

@@ -232,6 +232,16 @@ Journals go to `logs/trade/<name>/<SYMBOL>-<start_ns>.jsonl` and state to
 `.state/trade/<name>/`. Rule-strategy runs are engineering evidence only and never
 count toward graduation.
 
+Both are Git-ignored: they hold the paper account ID. `scripts/record_paper_day.sh
+<name>` writes the run's daily forward record (picks, average fill prices, results)
+to `docs/<name>-forward.md`, commits and pushes it, and copies all journals and run
+state to a private backup repository (`HFT_RECORDS`, default
+`~/git/hft-paper-records`). Schedule it after the close, for example with cron:
+
+```bash
+30 16 * * 1-5 cd ~/git/hft && scripts/record_paper_day.sh news-picks >> tmp/record.log 2>&1
+```
+
 ## Live activation and operations
 
 The build and tests never submit live orders. The operator must separately
