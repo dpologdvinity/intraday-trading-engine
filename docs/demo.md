@@ -1,9 +1,13 @@
 # Project demo
 
-This is a five-minute tour of the implemented research platform. The screenshots
-show the actual local MCD experiment on October 7, 2026. They demonstrate data
-inspection and engineering safeguards; no profitable model or broker trading
-result is established.
+This is a five-minute tour of the local dashboard. The screenshots show the actual
+local MCD experiment on October 7, 2026. They demonstrate data inspection and
+engineering safeguards; no profitable model is established.
+
+> The project has moved on since these captures: multi-stock paper trading on Alpaca,
+> pre-registered tests of rule strategies, and an ML day trader with news features.
+> See the [project history](project-history.md) and the
+> [paper sessions](paper-acceptance-results.md) for current results.
 
 ## Start the local dashboard
 

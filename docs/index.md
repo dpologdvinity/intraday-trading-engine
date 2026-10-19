@@ -1,8 +1,8 @@
 # Intraday Trading Engine
 
 A local stock-trading system: a C++20 engine ingests market data and decides, Python
-runs paper trading on Alpaca, and every strategy is pre-registered and judged on data
-it never saw, against simply holding the same stocks after costs.
+runs paper trading on Alpaca, and every strategy is judged on data it never saw,
+against simply holding the same stocks after costs.
 [Source code on GitHub](https://github.com/dpologdvinity/intraday-trading-engine).
 
 ![Local dashboard](images/dashboard-overview.png)

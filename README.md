@@ -2,24 +2,29 @@
 
 [![CI](https://github.com/dpologdvinity/intraday-trading-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/dpologdvinity/intraday-trading-engine/actions/workflows/ci.yml)
 
-A local, CPU-only research system for intraday stock trading. It replays historical
-quote and trade events through a causal execution simulator, trains PPO policies
-against it, evaluates them on reserved unseen sessions, and deploys the selected
-policy as an immutable ONNX bundle for replay, local dry runs and gated
-Alpaca paper trading. Decisions are made every **5 seconds**; this is intraday
-research infrastructure, not colocated submillisecond execution.
+A local stock-trading system: a C++20 engine ingests market data and decides, Python
+runs multi-stock paper trading on Alpaca, and every strategy (rules, PPO policies and
+an ML day trader trained on a free Kaggle GPU) is judged on data it never saw,
+against simply holding the same stocks after costs. It replays historical
+quotes through a causal execution simulator; live decisions run every **5 seconds**
+or on a daily schedule. This is research infrastructure, not colocated
+submillisecond execution. Project site: <https://dpologdvinity.github.io/intraday-trading-engine/>.
 
-**Python · C++20 / pybind11 · PyTorch / Stable-Baselines3 · Gymnasium · ONNX Runtime · PyArrow / Parquet · React / Vite**
+**Python · C++20 / pybind11 · PyTorch / LightGBM / Stable-Baselines3 · ONNX Runtime · PyArrow / Parquet · Alpaca · React / Vite**
 
-> **Status:** the engineering platform is implemented and tested. The current real-data
-> experiment (82 MCD sessions) is blocked by measured feed gaps in the development
-> data, so no model has qualified for trading. The system reports that honestly
-> rather than training on unusable data.
+> **Status (October 2026):** the engine and paper trading are implemented, tested and
+> running on an Alpaca paper account. Rule strategies (five of them pre-registered) and
+> 108 ML day-trader variants, some with news features, were tested out of sample;
+> none beat holding the same stocks after costs
+> ([project history](docs/project-history.md)). The best news model now runs forward
+> on paper to build a record on new days. Real money stays locked behind research
+> qualification and 30 paper sessions.
 
 ![Local dashboard showing 82 real MCD sessions, 52 development sessions, 30 reserved final-test sessions, and training blocked by data quality.](docs/images/dashboard-overview.png)
 
-The screenshot shows actual local research artifacts. The chart is development-session
-trade history, not strategy returns; the $500 allocation is simulated.
+The screenshot (October 7, 2026) shows the dashboard on the first real-data experiment,
+82 MCD sessions blocked by feed gaps. The chart is development-session trade history,
+not strategy returns; the $500 allocation is simulated.
 [Demo walkthrough and more screenshots](docs/demo.md).
 
 ## Engineering highlights
@@ -97,7 +102,7 @@ runtime imports neither Torch nor Stable-Baselines3.
 ### Verify
 
 ```bash
-python -m pytest -q                      # 218 tests, synthetic fixtures only
+python -m pytest -q                      # 419 tests, synthetic fixtures only
 ruff check hft tests benchmarks scripts && ruff format --check hft tests benchmarks scripts
 npm --prefix frontend ci && npm --prefix frontend test && npm --prefix frontend run build
 ```
@@ -164,7 +169,7 @@ paper, where every session is unseen data.
 
 Real money is refused until a strategy passes research and 30 paper sessions.
 
-## ML day trader (in progress)
+## ML day trader
 
 A daily model picks which of 69 symbols to watch each day, and a minute model times
 one long round trip in each, flat five minutes before the close. Trees (LightGBM) and
@@ -182,7 +187,9 @@ python -m hft.ml.package                        # zips for a Kaggle GPU run
 The full 84-variant search runs on a free Kaggle GPU with
 [notebooks/kaggle_train.ipynb](notebooks/kaggle_train.ipynb). The first full search
 (84 variants, 2023-2024 validation) found no variant close to holding the symbols:
-the best made +13.6% against +97.2% ([results](docs/ml-daytrader-results.md)).
+the best made +13.6% against +97.2%. Nine pre-open news features from 335,339
+headlines lifted the best variant to +47.8%, and FinBERT sentiment added nothing;
+both still fail ([results](docs/ml-daytrader-results.md)).
 
 ## Research workflow
 
@@ -206,17 +213,19 @@ replay, dry runs, broker paper trading, graduation and live activation.
 - [Trading specification](docs/trading-spec.md): execution, risk, research and graduation contracts.
 - [Architecture](docs/architecture.md) and [demo walkthrough](docs/demo.md).
 - [Project history](docs/project-history.md): every experiment and how the goals changed.
-- [Performance results](docs/performance-results.md), [replay results](docs/replay-results.md), [paper acceptance results](docs/paper-acceptance-results.md), [intraday momentum results](docs/intraday-momentum-results.md), [overnight and multi-day results](docs/multiday-results.md), [overnight auction results](docs/overnight-auction-results.md), [analyst-upgrade results](docs/analyst-upgrade-results.md), [development readiness results](docs/research-readiness-results.md)
+- [Performance results](docs/performance-results.md), [replay results](docs/replay-results.md), [paper acceptance results](docs/paper-acceptance-results.md), [intraday momentum results](docs/intraday-momentum-results.md), [overnight and multi-day results](docs/multiday-results.md), [overnight auction results](docs/overnight-auction-results.md), [ML day-trader results](docs/ml-daytrader-results.md), [analyst-upgrade results](docs/analyst-upgrade-results.md), [development readiness results](docs/research-readiness-results.md)
   and [free-data suitability results](docs/free-data-suitability-results.md).
 - [Research roadmap](docs/research-improvement-roadmap.md) and [dashboard design system](DESIGN.md).
 
 ## Limitations
 
-- No model has qualified; the current development data fails continuity checks.
-  Passing engineering tests does not establish a trading edge.
+- No strategy has qualified: none beat holding the same stocks after costs on unseen
+  data. Passing engineering tests does not establish a trading edge.
 - Free IEX data is one exchange's feed, not consolidated NBBO or a full order book.
-- Historical replay cannot prove live network latency; broker fee and fractional
-  order behavior still need a real paper-account integration run.
+- Historical replay cannot prove live network latency. Paper fills are simulated by
+  the broker and look more generous than the project's own fill simulator.
+- The paper bot runs on a local computer: it pauses while the computer sleeps and
+  must be restarted after a reboot.
 - Stocks only, long-only fractional positions, no leverage or shorting.
 
 ## License
