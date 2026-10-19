@@ -41,3 +41,34 @@ def test_report_counts_each_trade_once_across_restarts(tmp_path):
     assert "KO" in text and "+30.00" in text  # 1.50 on 500 = 30 bp
     assert "2025-10-08" in text
     assert "total +1.00 over 2 trades on 1 exit days" in text
+
+
+def test_markdown_lists_picks_fill_prices_and_cumulative_results(tmp_path):
+    entry, exit_ = 1_759_930_260 * NS, 1_759_952_100 * NS  # 2025-10-08 09:31 and 15:35 ET
+    log = EventLog(tmp_path / "KO-1.jsonl")
+    log.write("start", event_ns=1)
+    log.write("picks", event_ns=entry, session="2025-10-08", picks=["KO", "BAC"], picked=True)
+    for execution_id, quantity, price, stamp in (
+        ("b1", "3", "60", entry),
+        ("b2", "1", "64", entry),
+        ("b2", "1", "64", entry),  # journaled twice after a restart: counted once
+        ("s1", "-4", "62", exit_),
+    ):
+        log.write(
+            "fill",
+            event_ns=stamp,
+            execution={
+                "execution_id": execution_id,
+                "signed_quantity": quantity,
+                "price": price,
+                "timestamp_ns": stamp,
+            },
+        )
+    log.write(
+        "trade", event_ns=exit_, entry_ns=entry, exit_ns=exit_, pnl="4", opening_notional="244"
+    )
+    log.close()
+    module = _module()
+    text = module.markdown("demo", module.load_trades(tmp_path), module.load_sessions(tmp_path))
+    assert "| 2025-10-08 | KO, BAC | KO | 61.00 | 62.00 | +4.00 | +164 |" in text
+    assert "| 2025-10-08 | +4.00 | +1.64% | +4.00 |" in text

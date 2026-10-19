@@ -6,6 +6,7 @@ from the broker fills recorded there. Paper fills are simulated by the broker an
 rule-strategy runs never count as graduation evidence.
 
     .venv/bin/python scripts/paper_report.py --run overnight
+    .venv/bin/python scripts/paper_report.py --run news-picks --markdown docs/news-picks-forward.md
 """
 
 import argparse
@@ -47,6 +48,79 @@ def load_trades(log_dir):
     return trades
 
 
+def load_sessions(log_dir):
+    """{session: {"picks": [...], "fills": {symbol: [(signed quantity, price)]}}}."""
+    sessions, seen = defaultdict(lambda: {"picks": None, "fills": defaultdict(list)}), set()
+    for path in sorted(Path(log_dir).glob("*.jsonl")):
+        symbol = path.name.split("-")[0]
+        for row in iter_log(path):
+            if row.get("event") == "picks":
+                sessions[row["session"]]["picks"] = row["picks"]
+            elif row.get("event") == "fill":
+                execution = row["execution"]
+                if execution["execution_id"] in seen:
+                    continue
+                seen.add(execution["execution_id"])
+                day = exit_day(execution["timestamp_ns"])
+                sessions[day]["fills"][symbol].append(
+                    (Decimal(str(execution["signed_quantity"])), Decimal(str(execution["price"])))
+                )
+    return sessions
+
+
+def _average(fills, sign):
+    rows = [(q, p) for q, p in fills if q * sign > 0]
+    quantity = sum((abs(q) for q, _ in rows), Decimal(0))
+    return sum((abs(q) * p for q, p in rows), Decimal(0)) / quantity if quantity else None
+
+
+def markdown(run, trades, sessions):
+    """Daily forward record: picks, average fill prices and results per session."""
+    by_day = defaultdict(list)
+    for t in trades:
+        by_day[exit_day(t["exit_ns"])].append(t)
+    lines = [
+        f"# Paper forward record: `{run}`",
+        "",
+        "Generated each trading day from the run's hash-chained journals by",
+        f"`scripts/paper_report.py --run {run} --markdown`. Paper fills are simulated by the",
+        "broker; results over a few days cannot establish an edge.",
+        "",
+        "| Session | Picks | Stock | Bought | Sold | Net $ | bp |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: |",
+    ]
+    total, days = Decimal(0), []
+    for day in sorted(set(sessions) | set(by_day)):
+        session = sessions.get(day, {"picks": None, "fills": {}})
+        picks = ", ".join(session["picks"]) if session["picks"] is not None else "-"
+        rows = sorted(by_day.get(day, []), key=lambda t: t["symbol"])
+        if not rows:
+            lines.append(f"| {day} | {picks or 'none'} | - | | | | |")
+            continue
+        net = sum(t["pnl"] for t in rows)
+        total += net
+        days.append((day, net, sum(t["notional"] for t in rows)))
+        for t in rows:
+            fills = session["fills"].get(t["symbol"], [])
+            bought, sold = _average(fills, 1), _average(fills, -1)
+            lines.append(
+                f"| {day} | {picks} | {t['symbol']} | "
+                f"{f'{bought:.2f}' if bought else '-'} | {f'{sold:.2f}' if sold else '-'} | "
+                f"{t['pnl']:+.2f} | {t['pnl'] / t['notional'] * 10_000:+.0f} |"
+            )
+    lines += [
+        "",
+        "| Session | Net $ | Return on invested | Cumulative $ |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+    running = Decimal(0)
+    for day, net, notional in days:
+        running += net
+        lines.append(f"| {day} | {net:+.2f} | {net / notional * 100:+.2f}% | {running:+.2f} |")
+    lines += ["", f"Total {total:+.2f} over {len(trades)} trades on {len(days)} sessions.", ""]
+    return "\n".join(lines)
+
+
 def exit_day(ns):
     return datetime.fromtimestamp(ns / 1e9, UTC).astimezone(NEW_YORK).date().isoformat()
 
@@ -84,8 +158,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--run", required=True, help="run name under logs/trade/")
     parser.add_argument("--logs", type=Path, default=ROOT / "logs" / "trade")
+    parser.add_argument("--markdown", type=Path, help="also write a daily forward record here")
     args = parser.parse_args()
-    print(report(load_trades(args.logs / args.run)))
+    trades = load_trades(args.logs / args.run)
+    print(report(trades))
+    if args.markdown:
+        args.markdown.write_text(markdown(args.run, trades, load_sessions(args.logs / args.run)))
 
 
 if __name__ == "__main__":
