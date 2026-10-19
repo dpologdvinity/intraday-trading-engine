@@ -1,0 +1,10 @@
+title: Intraday Trading Engine
+description: A C++20 market-data engine, Alpaca paper trading and pre-registered strategy research, judged out of sample against simply holding the stocks.
+theme: jekyll-theme-minimal
+plugins:
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: false
+exclude:
+  - images/capture-manifest.json

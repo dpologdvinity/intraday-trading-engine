@@ -7,7 +7,7 @@ was made beforehand, to confirm that the endpoint serves 2016 bars.
 
 The paper strategy `overnight-drift` now buys in the closing auction and sells in
 the opening auction, which avoids the bid-ask spread that made the earlier
-backtest break even ([multiday results](../multiday-results.md)). That backtest
+backtest break even ([multiday results](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/multiday-results.md)). That backtest
 used 2024-10-03 to 2026-10-02, which has now been seen. Alpaca's free historical
 SIP daily bars go back to 2016, so the years before October 2024 give a fresh test
 of the strategy as deployed.

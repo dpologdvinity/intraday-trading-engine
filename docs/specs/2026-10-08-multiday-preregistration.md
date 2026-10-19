@@ -7,9 +7,9 @@ recorded as an amendment with its reason.
 ## Why these rules
 
 Same-day strategies do not survive costs on this data. The 5-second EMA crossover
-lost 3.7-5.5 bp per round trip ([replay results](../replay-results.md)). Intraday
+lost 3.7-5.5 bp per round trip ([replay results](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/replay-results.md)). Intraday
 momentum lost 7.50 bp per trade on the holdout
-([intraday momentum results](../intraday-momentum-results.md)). A rule that holds
+([intraday momentum results](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/intraday-momentum-results.md)). A rule that holds
 for a night or a week spreads the same round-trip cost over a larger expected move.
 Both rules below are published, have no tuned parameters, and trade long only.
 

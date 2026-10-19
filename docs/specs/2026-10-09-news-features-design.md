@@ -3,7 +3,7 @@
 Status: decided 2026-10-09 under the owner's delegation ("you make all the
 decisions"). Builds on the [ML day trader](2026-10-08-ml-daytrader-design.md), whose
 price-only search found no variant close to holding
-([results](../ml-daytrader-results.md)).
+([results](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/ml-daytrader-results.md)).
 
 ## Hypothesis
 

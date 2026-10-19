@@ -11,7 +11,7 @@ history, and many variants are trained in parallel and combined.
 
 **Success** means the combined system beats simply holding the same symbols, after
 costs, on data it never trained on or was selected on. Profit on training data
-counts for nothing (see experiment 12 in [project history](../project-history.md)).
+counts for nothing (see experiment 12 in [project history](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/project-history.md)).
 Paper trading after the final test is the only fully clean evidence. Real money
 stays locked behind research qualification and 30 paper sessions.
 

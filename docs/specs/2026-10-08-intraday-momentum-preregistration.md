@@ -8,7 +8,7 @@ as amendments with their reason and do not touch the holdout.
 
 Replays showed the 5/20-bar EMA crossover flipping about every 50 seconds and
 losing 3.7-5.5 bp per round trip to the spread on flat days
-([replay results](../replay-results.md)). The cost hurdle says spread-crossing
+([replay results](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/replay-results.md)). The cost hurdle says spread-crossing
 strategies need far fewer trades or much longer holds. Market intraday momentum
 (Gao, Han, Li and Zhou, "Market intraday momentum", Journal of Financial
 Economics, 2018) is a published, parameter-free effect with one trade per day:

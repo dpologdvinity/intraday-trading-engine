@@ -60,7 +60,7 @@ read. A regression in `tests/test_policy.py` proves omitted, empty, or malformed
 observations are rejected without calling the dataset loader or rollout, and the
 explicit-observation ONNX parity test still passes.
 
-Original finding: in [policy.py](../hft/policy.py), `export_bundle` can generate observations when
+Original finding: in [policy.py](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/hft/policy.py), `export_bundle` can generate observations when
 none are supplied. That fallback loads the entire dataset before selecting
 final-test sessions and does not check reservation state. Ordinary search passes
 observations explicitly and therefore does not use this branch.
@@ -81,7 +81,7 @@ RSS 33% and load time 10×; across the 52 MCD development sessions retained byte
 fell 62.8%. Bars, gaps, eligibility and rollout results are identical. See
 [performance results](performance-results.md).
 
-Original proposal: in [data.py](../hft/data.py), `load_session` retains every nonnumeric archive
+Original proposal: in [data.py](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/hft/data.py), `load_session` retains every nonnumeric archive
 column, and `iter_events` converts the retained fields into Python values for
 each event. Raw JSON and original quote-size columns have no execution consumers;
 normalized quote sizes already provide executable quantities.
@@ -99,11 +99,11 @@ the improvement.
 
 ### 3. Bound Simulation Ownership and Preparation
 
-In [env.py](../hft/env.py), prepared simulations accumulate in a per-environment
+In [env.py](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/hft/env.py), prepared simulations accumulate in a per-environment
 cache. Closing an environment clears the cache but retains its active simulation
 and session references. The default training configuration creates four
 environments, each with independently prepared simulations and quote-order arrays.
-In [training.py](../hft/training.py), a previous model can remain referenced while
+In [training.py](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/hft/training.py), a previous model can remain referenced while
 the next fit is created.
 
 Define explicit ownership and release points, bound cached preparation, and

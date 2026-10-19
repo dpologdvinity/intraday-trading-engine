@@ -22,11 +22,11 @@ exclude loaded metadata, and partition checksums cover the file bytes.
 
 ## Results
 
-Measured with [`benchmarks/session_pipeline.py`](../benchmarks/session_pipeline.py),
+Measured with [`benchmarks/session_pipeline.py`](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/benchmarks/session_pipeline.py),
 which runs each repetition in a fresh process and fingerprints the bars, gaps,
 decision eligibility and (with `--rollout`) the full always-long rollout result.
 "Before" is commit `d67bb47`; "after" is the execution view at `e318ca1`. Raw
-outputs are in [benchmarks/results/2026-10-07](../benchmarks/results/2026-10-07/).
+outputs are in [benchmarks/results/2026-10-07](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/benchmarks/results/2026-10-07/).
 
 ### NVDA 2026-06-05: 5,103,471 quotes, 76,525 trades
 

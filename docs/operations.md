@@ -1,7 +1,7 @@
 # Operations guide
 
 Commands and operating contracts for acquiring data, training, replay, dry runs,
-broker paper trading and live activation. Start with the [README](../README.md)
+broker paper trading and live activation. Start with the [README](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/README.md)
 for installation and the offline smoke check, and the
 [trading specification](trading-spec.md) for the full execution and risk contracts.
 

@@ -19,7 +19,7 @@ Open <http://127.0.0.1:8765>. If a dashboard already runs on that port, use it
 instead of starting another. The dashboard reads existing local artifacts and
 does not require credentials, download data, fit models, or submit orders.
 
-For a fresh clone, follow the [installation instructions](../README.md#quick-start),
+For a fresh clone, follow the [installation instructions](https://github.com/dpologdvinity/intraday-trading-engine/blob/master/README.md#quick-start),
 using `requirements-runtime.txt` if you only need the dashboard, and install
 frontend dependencies with `npm --prefix frontend ci`. Generated `data/`,
 `artifacts/`, `logs/`, and `.state/` are excluded from Git. A fresh clone displays
