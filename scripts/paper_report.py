@@ -11,6 +11,7 @@ rule-strategy runs never count as graduation evidence.
 
 import argparse
 import sys
+import time
 from collections import defaultdict
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -49,11 +50,13 @@ def load_trades(log_dir):
 
 
 def load_sessions(log_dir):
-    """{session: {"picks": [...], "fills": {symbol: [(signed quantity, price)]}}}."""
+    """{day: {"picks": [...], "fills": {symbol: [(signed quantity, price)]}}} for every
+    New York day on which the run wrote any journal row (it was running)."""
     sessions, seen = defaultdict(lambda: {"picks": None, "fills": defaultdict(list)}), set()
     for path in sorted(Path(log_dir).glob("*.jsonl")):
         symbol = path.name.split("-")[0]
         for row in iter_log(path):
+            sessions[exit_day(row["wall_ns"])]  # any row marks the day as running
             if row.get("event") == "picks":
                 sessions[row["session"]]["picks"] = row["picks"]
             elif row.get("event") == "fill":
@@ -74,8 +77,12 @@ def _average(fills, sign):
     return sum((abs(q) * p for q, p in rows), Decimal(0)) / quantity if quantity else None
 
 
-def markdown(run, trades, sessions):
-    """Daily forward record: picks, average fill prices and results per session."""
+def markdown(run, trades, sessions, market_days=()):
+    """Daily forward record: picks, average fill prices and results per session.
+
+    Market days (session dates, YYYY-MM-DD) from the run's first journal day through
+    its last one with no journal row at all are listed as "bot not running".
+    """
     by_day = defaultdict(list)
     for t in trades:
         by_day[exit_day(t["exit_ns"])].append(t)
@@ -90,7 +97,13 @@ def markdown(run, trades, sessions):
         "| --- | --- | --- | ---: | ---: | ---: | ---: |",
     ]
     total, days = Decimal(0), []
-    for day in sorted(set(sessions) | set(by_day)):
+    first, today = min(sessions, default=""), exit_day(time.time_ns())
+    shown = {d for d in sessions if d in set(market_days) or sessions[d]["picks"] is not None}
+    shown |= {d for d in market_days if first <= d <= today} | set(by_day)
+    for day in sorted(shown):
+        if day not in sessions and day not in by_day:
+            lines.append(f"| {day} | bot not running | - | | | | |")
+            continue
         session = sessions.get(day, {"picks": None, "fills": {}})
         picks = ", ".join(session["picks"]) if session["picks"] is not None else "-"
         rows = sorted(by_day.get(day, []), key=lambda t: t["symbol"])
@@ -163,7 +176,15 @@ def main():
     trades = load_trades(args.logs / args.run)
     print(report(trades))
     if args.markdown:
-        args.markdown.write_text(markdown(args.run, trades, load_sessions(args.logs / args.run)))
+        try:
+            from hft.runtime import fetch_calendar
+
+            market_days = [r["date"] for r in fetch_calendar()]
+        except (RuntimeError, OSError, KeyError, TypeError, ValueError) as error:
+            print(f"warning: no market calendar ({error}); missed days are not listed")
+            market_days = []
+        text = markdown(args.run, trades, load_sessions(args.logs / args.run), market_days)
+        args.markdown.write_text(text)
 
 
 if __name__ == "__main__":

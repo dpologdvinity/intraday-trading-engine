@@ -72,3 +72,18 @@ def test_markdown_lists_picks_fill_prices_and_cumulative_results(tmp_path):
     text = module.markdown("demo", module.load_trades(tmp_path), module.load_sessions(tmp_path))
     assert "| 2025-10-08 | KO, BAC | KO | 61.00 | 62.00 | +4.00 | +164 |" in text
     assert "| 2025-10-08 | +4.00 | +1.64% | +4.00 |" in text
+
+
+def test_markdown_lists_market_days_without_journal_rows_as_not_running(tmp_path):
+    days = {"2025-10-06": 1_759_757_400, "2025-10-08": 1_759_930_200}  # 09:30 ET
+    for name, day in (("A", "2025-10-06"), ("B", "2025-10-08")):
+        log = EventLog(tmp_path / f"KO-{name}.jsonl", clock=lambda d=day: days[d] * NS)
+        log.write("start", event_ns=1)
+        log.write("picks", event_ns=1, session=day, picks=[], picked=False)
+        log.close()
+    module = _module()
+    market = ["2025-10-03", "2025-10-06", "2025-10-07", "2025-10-08"]
+    text = module.markdown("demo", [], module.load_sessions(tmp_path), market)
+    assert "| 2025-10-07 | bot not running |" in text
+    assert "| 2025-10-06 | none |" in text and "| 2025-10-08 | none |" in text
+    assert "2025-10-03" not in text  # before the run started
