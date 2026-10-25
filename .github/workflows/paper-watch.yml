@@ -1,0 +1,42 @@
+# Fails (and so emails the repository owner) when a market day passes without a
+# healthy news-picks paper session in docs/news-picks-forward.md. The record is
+# committed from the local machine at 16:30 ET, so a missing row means the bot, the
+# machine or the evening job was down; a "bot not running" row means the bot was.
+name: Paper bot watch
+
+on:
+  schedule:
+    - cron: "30 23 * * 1-5" # 19:30 EDT / 18:30 EST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install exchange_calendars==4.13.2
+      - name: Today's session is recorded
+        shell: python
+        run: |
+          import datetime, pathlib, sys, zoneinfo
+          import exchange_calendars
+
+          today = datetime.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date()
+          if not exchange_calendars.get_calendar("XNYS").is_session(today.isoformat()):
+              print(f"{today} is not a market day")
+              sys.exit(0)
+          record = pathlib.Path("docs/news-picks-forward.md").read_text()
+          rows = [r for r in record.splitlines() if r.startswith(f"| {today} |")]
+          if not rows:
+              print(f"::error::no news-picks record for {today}: the bot, the machine or the evening job was down")
+              sys.exit(1)
+          if any("bot not running" in r for r in rows):
+              print(f"::error::the news-picks bot was not running on {today}")
+              sys.exit(1)
+          print("\n".join(rows))
