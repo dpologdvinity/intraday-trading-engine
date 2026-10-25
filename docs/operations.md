@@ -242,6 +242,11 @@ state to a private backup repository (`HFT_RECORDS`, default
 30 16 * * 1-5 cd ~/git/hft && scripts/record_paper_day.sh news-picks >> tmp/record.log 2>&1
 ```
 
+The record lists market days on which the run wrote no journal row as "bot not
+running". The `Paper bot watch` workflow (`.github/workflows/paper-watch.yml`) checks
+at 19:30 ET on market days that today's row exists and is healthy, and fails (GitHub
+emails the repository owner) otherwise.
+
 ## Live activation and operations
 
 The build and tests never submit live orders. The operator must separately
