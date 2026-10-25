@@ -106,3 +106,12 @@ The bot cannot trade while the computer sleeps or after a reboot until restarted
 The run refreshed its data at 08:55, picked INTC, NBIS and CRWV at 09:30, bought from
 09:31 and sold at 15:55: -$83.66 (-2.8% of the $2,950 invested). Each session's
 results are now recorded in the [forward record](news-picks-forward.md).
+
+## 2026-10-20 to 10-23: sessions missed
+
+The news-picks process stopped some time after the 10-19 close and left no error;
+its journals end at 15:55:09. The most likely cause is WSL shutting the Linux
+instance down after the last terminal closed (its default idle timeout is 15 s),
+which kills background processes without a trace. Four sessions were missed. The
+idle shutdown is now disabled (`instanceIdleTimeout=-1` in `.wslconfig`) and the run
+was restarted on 2026-10-25 from its saved state.
