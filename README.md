@@ -213,7 +213,7 @@ replay, dry runs, broker paper trading, graduation and live activation.
 - [Trading specification](docs/trading-spec.md): execution, risk, research and graduation contracts.
 - [Architecture](docs/architecture.md) and [demo walkthrough](docs/demo.md).
 - [Project history](docs/project-history.md): every experiment and how the goals changed.
-- [Performance results](docs/performance-results.md), [replay results](docs/replay-results.md), [paper acceptance results](docs/paper-acceptance-results.md), [intraday momentum results](docs/intraday-momentum-results.md), [overnight and multi-day results](docs/multiday-results.md), [overnight auction results](docs/overnight-auction-results.md), [ML day-trader results](docs/ml-daytrader-results.md), [analyst-upgrade results](docs/analyst-upgrade-results.md), [development readiness results](docs/research-readiness-results.md)
+- [Performance results](docs/performance-results.md), [replay results](docs/replay-results.md), [paper acceptance results](docs/paper-acceptance-results.md), [intraday momentum results](docs/intraday-momentum-results.md), [overnight and multi-day results](docs/multiday-results.md), [overnight auction results](docs/overnight-auction-results.md), [ML day-trader results](docs/ml-daytrader-results.md), [longer-horizon results](docs/longer-horizons-results.md), [analyst-upgrade results](docs/analyst-upgrade-results.md), [development readiness results](docs/research-readiness-results.md)
   and [free-data suitability results](docs/free-data-suitability-results.md).
 - [Research roadmap](docs/research-improvement-roadmap.md) and [dashboard design system](DESIGN.md).
 

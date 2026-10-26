@@ -37,6 +37,7 @@ money stays locked behind research qualification and 30 paper sessions.
 | [ML day trader, 84 variants](ml-daytrader-results.md) | Best +13.6% against +97.2% for holding (2023-2024) |
 | [Pre-open analyst upgrades](analyst-upgrade-results.md) | +4.7 bp per trade, interval includes zero |
 | [News and FinBERT features](ml-daytrader-results.md) | Best +47.8% against +97.2% for holding |
+| [Momentum and analyst drift over weeks](longer-horizons-results.md) | +75 bp/month and +52 bp/trade above the same stocks (holdout), intervals include zero |
 
 The best news model now runs forward on the paper account to build a record on new
 days. Paper results are simulated money and do not establish an edge.
