@@ -9,13 +9,13 @@ broker; results over a few days cannot establish an edge.
 | 2026-10-19 | INTC, NBIS, CRWV | CRWV | 64.16 | 61.18 | -45.68 | -464 |
 | 2026-10-19 | INTC, NBIS, CRWV | INTC | 94.83 | 92.22 | -27.17 | -274 |
 | 2026-10-19 | INTC, NBIS, CRWV | NBIS | 172.79 | 170.88 | -10.81 | -111 |
-| 2026-10-20 | bot not running | - | | | | |
-| 2026-10-21 | bot not running | - | | | | |
-| 2026-10-22 | bot not running | - | | | | |
-| 2026-10-23 | bot not running | - | | | | |
+| 2026-10-26 | LITE, TSLA, MS | LITE | 760.33 | 817.80 | +74.44 | +756 |
+| 2026-10-26 | LITE, TSLA, MS | MS | 181.92 | 183.77 | +10.05 | +102 |
+| 2026-10-26 | LITE, TSLA, MS | TSLA | 388.38 | 391.16 | +7.10 | +72 |
 
 | Session | Net $ | Return on invested | Cumulative $ |
 | --- | ---: | ---: | ---: |
 | 2026-10-19 | -83.66 | -2.84% | -83.66 |
+| 2026-10-26 | +91.60 | +3.09% | +7.94 |
 
-Total -83.66 over 3 trades on 1 sessions.
+Total +7.94 over 6 trades on 2 sessions.
