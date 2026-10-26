@@ -182,6 +182,14 @@ def save_calendar(root, windows):
     path.write_text(json.dumps(rows) + "\n")
 
 
+def update_calendar(root, windows):
+    """Add or replace sessions in the saved calendar, keeping every earlier session."""
+    path = Path(root) / "calendar.json"
+    sessions = {w.session_id: w for w in (load_calendar(root) if path.exists() else [])}
+    sessions.update({w.session_id: w for w in windows})
+    save_calendar(root, [sessions[k] for k in sorted(sessions)])
+
+
 def load_calendar(root):
     """Exchange sessions saved by the download, as SessionWindow objects."""
     from ..calendar import SessionWindow

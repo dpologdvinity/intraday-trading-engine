@@ -154,3 +154,20 @@ def test_changed_adjustments_trigger_a_full_redownload(tmp_path):
     _download(client, tmp_path)
     assert any(start.startswith("2016-01") for _, _, _, start in client.calls)
     assert set(read_bars(tmp_path, "1Min", "NVDA").column("c").to_pylist()) == {50.0}
+
+
+def test_the_live_calendar_refresh_keeps_earlier_sessions(tmp_path):
+    """The live picker's morning refresh replaced the 2016-2026 calendar with its
+    84 recent sessions, which emptied every news feature before them."""
+    from hft.ml.download import load_calendar, save_calendar, update_calendar
+
+    old = [SessionWindow(f"2016-01-0{d}", d, d + 1) for d in (4, 5)]
+    save_calendar(tmp_path, old)
+    update_calendar(
+        tmp_path, [SessionWindow("2016-01-05", 50, 60), SessionWindow("2026-10-19", 7, 8)]
+    )
+    assert [(w.session_id, w.open_ns) for w in load_calendar(tmp_path)] == [
+        ("2016-01-04", 4),
+        ("2016-01-05", 50),
+        ("2026-10-19", 7),
+    ]

@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from .datasets import write_data_manifest
-from .download import download_bars, save_calendar
+from .download import download_bars, update_calendar
 from .features import daily_frame
 from .news import download_news, read_news
 from .news_features import news_features
@@ -39,7 +39,7 @@ class NewsPicker:
 
     def refresh(self, today: date, calendar, client=None):
         """Bring bars (through yesterday), news (through now) and the calendar up to date."""
-        save_calendar(self.root, [w for w in calendar if w.session_id <= today.isoformat()])
+        update_calendar(self.root, [w for w in calendar if w.session_id <= today.isoformat()])
         yesterday = date.fromordinal(today.toordinal() - 1)
         for symbol in {*self.symbols, "SPY", "QQQ"}:
             first = next((s.first_date for s in UNIVERSE if s.ticker == symbol), yesterday)
