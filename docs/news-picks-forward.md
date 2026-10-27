@@ -12,10 +12,14 @@ broker; results over a few days cannot establish an edge.
 | 2026-10-26 | LITE, TSLA, MS | LITE | 760.33 | 817.80 | +74.44 | +756 |
 | 2026-10-26 | LITE, TSLA, MS | MS | 181.92 | 183.77 | +10.05 | +102 |
 | 2026-10-26 | LITE, TSLA, MS | TSLA | 388.38 | 391.16 | +7.10 | +72 |
+| 2026-10-27 | META, UNH, GOOGL | GOOGL | 317.73 | 320.89 | +9.78 | +99 |
+| 2026-10-27 | META, UNH, GOOGL | META | 625.37 | 620.06 | -8.35 | -85 |
+| 2026-10-27 | META, UNH, GOOGL | UNH | 411.79 | 410.13 | -3.99 | -40 |
 
 | Session | Net $ | Return on invested | Cumulative $ |
 | --- | ---: | ---: | ---: |
 | 2026-10-19 | -83.66 | -2.84% | -83.66 |
 | 2026-10-26 | +91.60 | +3.09% | +7.94 |
+| 2026-10-27 | -2.56 | -0.09% | +5.38 |
 
-Total +7.94 over 6 trades on 2 sessions.
+Total +5.38 over 9 trades on 3 sessions.
