@@ -9,6 +9,10 @@ broker; results over a few days cannot establish an edge.
 | 2026-10-19 | INTC, NBIS, CRWV | CRWV | 64.16 | 61.18 | -45.68 | -464 |
 | 2026-10-19 | INTC, NBIS, CRWV | INTC | 94.83 | 92.22 | -27.17 | -274 |
 | 2026-10-19 | INTC, NBIS, CRWV | NBIS | 172.79 | 170.88 | -10.81 | -111 |
+| 2026-10-20 | bot not running | - | | | | |
+| 2026-10-21 | bot not running | - | | | | |
+| 2026-10-22 | bot not running | - | | | | |
+| 2026-10-23 | bot not running | - | | | | |
 | 2026-10-26 | LITE, TSLA, MS | LITE | 760.33 | 817.80 | +74.44 | +756 |
 | 2026-10-26 | LITE, TSLA, MS | MS | 181.92 | 183.77 | +10.05 | +102 |
 | 2026-10-26 | LITE, TSLA, MS | TSLA | 388.38 | 391.16 | +7.10 | +72 |
@@ -19,7 +23,12 @@ broker; results over a few days cannot establish an edge.
 | 2026-10-29 | - | AMAT | - | 418.59 | +39.94 | +406 |
 | 2026-10-29 | - | AVGO | - | 342.61 | -17.98 | -182 |
 | 2026-10-29 | - | TSLA | - | 406.21 | -5.56 | -56 |
+| 2026-10-30 | - | - | | | | |
+| 2026-11-02 | - | - | | | | |
+| 2026-11-03 | bot not running | - | | | | |
+| 2026-11-04 | - | - | | | | |
 | 2026-11-05 | BAC, BA, CRM | - | | | | |
+| 2026-11-06 | - | - | | | | |
 
 | Session | Net $ | Return on invested | Cumulative $ |
 | --- | ---: | ---: | ---: |
