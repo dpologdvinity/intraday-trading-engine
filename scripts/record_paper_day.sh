@@ -11,6 +11,8 @@ run=${1:-news-picks}
 root=$(cd "$(dirname "$0")/.." && pwd)
 backup=${HFT_RECORDS:-$HOME/git/hft-paper-records}
 cd "$root"
+# Cron starts without the login environment: read the market-data keys from .env.
+if [ -f .env ]; then set -a; . ./.env; set +a; fi
 
 doc="docs/$run-forward.md"
 .venv/bin/python scripts/paper_report.py --run "$run" --markdown "$doc" > /dev/null
