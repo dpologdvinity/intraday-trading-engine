@@ -167,6 +167,9 @@ day-trader variant: it refreshes bars and news before the open, picks at the ope
 sells five minutes before the close. It runs the best news-aware variant forward on
 paper, where every session is unseen data.
 
+`--strategy momentum` holds the top 10 stocks by twelve-month momentum, rebalanced
+monthly, the best-performing rule of the [longer-horizon tests](docs/longer-horizons-results.md).
+
 Real money is refused until a strategy passes research and 30 paper sessions.
 
 ## ML day trader

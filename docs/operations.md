@@ -228,6 +228,21 @@ python -m hft trade --paper --strategy news-picks:artifacts/ml-news-search/7f7b8
     --symbols AAPL=1000 MSFT=1000 ... --name news-picks
 ```
 
+`momentum` forward-tests the pre-registered 12-1 momentum rule
+([results](longer-horizons-results.md)): once a month it chooses the top 10 symbols
+by the return from the last close of month M-13 to the last close of month M-2,
+reading the daily bars in `data/ml/1Day` (refreshed each morning by a news-picks
+run; momentum only reads them). From one minute to an hour after each open it sells
+holdings outside the choice and buys chosen stocks it does not hold, so a missed
+session is made up on the next one. Each stock invests its whole budget when chosen.
+One bot runs per paper account; a second Alpaca paper account runs it alongside
+news-picks by exporting that account's keys as `ALPACA_PAPER_API_KEY` and
+`ALPACA_PAPER_SECRET_KEY` for the momentum process only.
+
+```bash
+python -m hft trade --paper --strategy momentum --symbols AAPL=1400 MSFT=1400 ... --name momentum
+```
+
 Journals go to `logs/trade/<name>/<SYMBOL>-<start_ns>.jsonl` and state to
 `.state/trade/<name>/`. Rule-strategy runs are engineering evidence only and never
 count toward graduation.
