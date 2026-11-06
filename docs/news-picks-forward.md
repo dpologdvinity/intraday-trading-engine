@@ -28,7 +28,9 @@ broker; results over a few days cannot establish an edge.
 | 2026-11-03 | bot not running | - | | | | |
 | 2026-11-04 | - | - | | | | |
 | 2026-11-05 | BAC, BA, CRM | - | | | | |
-| 2026-11-06 | - | - | | | | |
+| 2026-11-06 | LITE, LRCX, SNDK | LITE | 537.74 | 537.23 | -0.98 | -9 |
+| 2026-11-06 | LITE, LRCX, SNDK | LRCX | 202.72 | 200.60 | -10.12 | -105 |
+| 2026-11-06 | LITE, LRCX, SNDK | SNDK | 858.29 | 834.45 | -26.32 | -278 |
 
 | Session | Net $ | Return on invested | Cumulative $ |
 | --- | ---: | ---: | ---: |
@@ -36,5 +38,6 @@ broker; results over a few days cannot establish an edge.
 | 2026-10-26 | +91.60 | +3.09% | +7.94 |
 | 2026-10-27 | -2.56 | -0.09% | +5.38 |
 | 2026-10-29 | +16.40 | +0.55% | +21.77 |
+| 2026-11-06 | -37.42 | -1.27% | -15.64 |
 
-Total +21.77 over 12 trades on 4 sessions.
+Total -15.64 over 15 trades on 5 sessions.
