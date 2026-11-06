@@ -62,7 +62,7 @@ def momentum(dates, opens, closes, costs, top=TOP):
         score = np.where(scored, late / early, -np.inf)
         chosen = np.argsort(-score, kind="stable")[:top]
         growth = np.where(scored, exit_ / entry, 1.0)
-        out = {"start": str(dates[starts[m + 1]])}
+        out = {"start": str(dates[starts[m + 1]]), "picks": [int(s) for s in chosen]}
         for name, members in (("rule", chosen), ("benchmark", np.flatnonzero(scored))):
             weights = np.zeros(len(score))
             weights[members] = 1.0 / len(members)

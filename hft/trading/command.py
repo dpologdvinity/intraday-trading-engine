@@ -210,6 +210,17 @@ def _run_overnight(args, name, budgets, strategy, identity, client, calendar):
                 f"{strategy.bundle}, sells five minutes before the close; Ctrl-C cancels orders",
                 flush=True,
             )
+        elif strategy.name == "momentum":
+            from .momentum import MomentumRunner
+
+            runner = MomentumRunner(
+                config, broker, calendar(), calendar_source=calendar, data_root=ROOT / "data" / "ml"
+            )
+            print(
+                f"momentum paper trading as run '{name}': holds the top 10 of {len(budgets)} "
+                "stocks by 12-1 momentum, rebalanced monthly; Ctrl-C cancels orders",
+                flush=True,
+            )
         else:
             runner = OvernightRunner(config, broker, calendar(), calendar_source=calendar)
             print(

@@ -5,7 +5,7 @@ from pathlib import Path
 
 RULE_STRATEGIES = frozenset({"ema-crossover", "hold-day"})
 # Run on a clock (orders at set times around the open and close), not on 5 s bars.
-SCHEDULED_STRATEGIES = frozenset({"overnight-drift", "news-picks"})
+SCHEDULED_STRATEGIES = frozenset({"overnight-drift", "news-picks", "momentum"})
 STRATEGY_VERSION = "1"
 
 
@@ -33,7 +33,7 @@ def parse_strategy(text: str) -> StrategySpec:
     if text.startswith("model:") and len(text) > len("model:"):
         return StrategySpec("model", bundle=Path(text.removeprefix("model:")))
     raise ValueError(
-        f"unknown strategy {text!r}; use ema-crossover, hold-day, overnight-drift, "
+        f"unknown strategy {text!r}; use ema-crossover, hold-day, overnight-drift, momentum, "
         "news-picks:<variant folder> or model:<bundle>"
     )
 

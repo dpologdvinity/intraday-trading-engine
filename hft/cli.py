@@ -77,7 +77,7 @@ def _parser():
     trade.add_argument(
         "--strategy",
         default="ema-crossover",
-        help="ema-crossover, hold-day, overnight-drift or model:<bundle>",
+        help="ema-crossover, hold-day, overnight-drift, momentum, news-picks:<variant> or model:<bundle>",
     )
     trade.add_argument("--name", help="run name (state and journals are kept per run)")
     trade.add_argument("--daily-loss", type=float, default=0.02)

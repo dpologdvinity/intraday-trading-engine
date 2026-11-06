@@ -2,6 +2,7 @@ import asyncio
 import json
 from decimal import Decimal
 
+import numpy as np
 import pytest
 
 from hft.account import Costs
@@ -468,3 +469,101 @@ def test_last_trade_prices_batches_symbols(monkeypatch):
     monkeypatch.setattr(overnight, "_DATA_CLIENT", Missing())
     with pytest.raises(ValueError, match="no latest trade for AAPL"):
         overnight.last_trade_prices(["AAPL"])
+
+
+def _momentum_history(month_closes):
+    """Daily dates with one close per month-end row, enough for 12-1 momentum."""
+    dates = np.arange(
+        np.datetime64("2023-12-01"), np.datetime64("2025-01-01"), np.timedelta64(1, "D")
+    )
+    closes = np.full((len(dates), len(month_closes)), np.nan)
+    months = dates.astype("datetime64[M]")
+    for s, (early, late) in enumerate(month_closes):
+        closes[months == np.datetime64("2023-12"), s] = early
+        closes[months == np.datetime64("2024-11"), s] = late
+        closes[months == np.datetime64("2024-12"), s] = late
+    return dates, closes
+
+
+def test_momentum_choice_uses_the_twelve_minus_one_window():
+    from hft.trading.momentum import choose
+
+    dates, closes = _momentum_history([(100, 110), (100, 150), (100, 90)])
+    assert choose(dates, closes, np.datetime64("2025-01"), top=2) == [1, 0]
+    assert choose(dates, closes, np.datetime64("2025-02"), top=2) is None  # no January bars yet
+
+
+def test_momentum_choice_matches_the_backtest():
+    import importlib.util
+    from pathlib import Path
+
+    from hft.trading.momentum import choose
+
+    spec = importlib.util.spec_from_file_location(
+        "longer_horizons", Path(__file__).resolve().parents[1] / "scripts" / "longer_horizons.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    rng = np.random.default_rng(1)
+    dates = np.arange(
+        np.datetime64("2018-01-01"), np.datetime64("2021-01-01"), np.timedelta64(1, "D")
+    )
+    dates = dates[np.is_busday(dates)]
+    prices = 100 * np.exp(np.cumsum(rng.normal(0, 0.02, (len(dates), 15)), axis=0))
+    for record in module.momentum(dates, prices, prices, np.zeros(15), top=5):
+        month = np.datetime64(record["start"], "M")
+        assert (
+            choose(
+                dates[dates < np.datetime64(month, "D")],
+                prices[dates < np.datetime64(month, "D")],
+                month,
+                5,
+            )
+            == record["picks"]
+        )
+
+
+def test_momentum_buys_this_months_choice_after_the_open(tmp_path):
+    from hft.trading.momentum import MomentumRunner
+
+    clock = Clock(START)
+    exchange = Exchange(clock, prices)
+    budgets = {"BIG": 1000, "SMALL": 100}
+    broker = PortfolioBroker(
+        exchange,
+        budgets,
+        Costs(0, 0),
+        lambda s: budget_gateway(budgets[s]),
+        run_dir=tmp_path / "state",
+        identity="run",
+        clock=clock,
+        book_class=OvernightBook,
+    )
+    config = OvernightConfig(
+        "test",
+        tuple(budgets),
+        budgets,
+        parse_strategy("momentum"),
+        log_dir=tmp_path / "logs",
+        run_dir=tmp_path / "state",
+    )
+    runner = MomentumRunner(
+        config,
+        broker,
+        [DAY1, DAY2],
+        data_root=tmp_path,
+        closes=lambda root, symbols: _momentum_history([(100, 101), (100, 140)]),
+        top=1,
+        clock=clock,
+        sleep=clock.sleep,
+        prices=lambda symbols: {s: (prices(s, clock()), clock()) for s in symbols},
+    )
+    try:
+        summary = asyncio.run(runner.run(until_ns=DAY2.close_ns + 600 * NS))
+    finally:
+        broker.close()
+    assert [(s, side, tif) for s, side, tif, _ in exchange.posts] == [("SMALL", "buy", "day")]
+    assert DAY2.open_ns + 60 * NS <= exchange.posts[0][3] < DAY2.open_ns + 3600 * NS
+    assert Decimal(summary["SMALL"]["position"]) > 0  # held into the next session
+    assert broker.extra["momentum"] == {"month": "2025-01", "symbols": ["SMALL"]}
+    assert any(r["event"] == "picks" and r["picked"] for r in _rows(tmp_path, "SMALL"))
