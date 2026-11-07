@@ -29,4 +29,4 @@ stable_baselines3==2.9.0
 sympy==1.14.0
 torch==2.14.1+cpu
 typing_extensions==4.16.0
-websockets==16.1.1
+websockets==17.4

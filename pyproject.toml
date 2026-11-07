@@ -9,7 +9,7 @@ description = "Causal RL research and risk-gated paper trading"
 requires-python = ">=3.12"
 dependencies = [
   "numpy>=1.26,<3", "pyarrow>=17,<24", "gymnasium>=1.0,<2",
-  "onnxruntime>=1.19,<2", "websockets>=14,<17",
+  "onnxruntime>=1.19,<2", "websockets>=14,<18",
 ]
 
 [project.optional-dependencies]
