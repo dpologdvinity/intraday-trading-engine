@@ -12,3 +12,7 @@ pre-commit:
     ruff-format:
       glob: "{hft,tests,benchmarks,scripts}/*.py"
       run: ruff format --check --force-exclude {staged_files}
+    typos:
+      # typos would scan binary assets when handed explicit paths.
+      exclude: "*.{gif,png,jpg,jpeg,webp,ico,svg,pdf,woff,woff2,ttf}"
+      run: typos --force-exclude {staged_files}
