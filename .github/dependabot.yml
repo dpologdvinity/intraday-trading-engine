@@ -22,6 +22,16 @@ updates:
     groups:
       pip-minor-patch:
         update-types: ["minor", "patch"]
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore"
+      include: scope
+    groups:
+      uv-minor-patch:
+        update-types: ["minor", "patch"]
   - package-ecosystem: npm
     directory: /frontend
     schedule:
