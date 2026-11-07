@@ -12,12 +12,12 @@
     "format:check": "prettier --check src tests index.html vite.config.js package.json README.md"
   },
   "dependencies": {
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^6.1.1",
-    "vite": "^8.3.1",
-    "prettier": "^3.9.9"
+    "@vitejs/plugin-react": "^6.2.1",
+    "vite": "^8.3.5",
+    "prettier": "^3.9.10"
   }
 }
