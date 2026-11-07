@@ -1,0 +1,22 @@
+# typos config: https://github.com/crate-ci/typos
+[files]
+extend-exclude = [
+  "*.{gif,png,jpg,jpeg,webp,ico,svg,pdf,woff,woff2,ttf}",
+  # Generated benchmark results containing content hashes.
+  "benchmarks/results/**/*.json",
+]
+
+[default.extend-words]
+# Ticker symbol BA (Boeing) and VLUE (iShares MSCI USA Value ETF).
+"ba" = "ba"
+"vlue" = "vlue"
+# PnL (profit and loss) is split by the tokenizer into "Pn" + "L".
+"pn" = "pn"
+# "marginable" is the Alpaca API field/term for margin-eligible assets.
+"marginable" = "marginable"
+# numpy ndarray.flags.writeable (external API name).
+"writeable" = "writeable"
+# gae_lambda: generalized advantage estimation hyperparameter.
+"gae" = "gae"
+# Deliberate near-miss input ("abd" vs "abc") in the hash tests.
+"abd" = "abd"
