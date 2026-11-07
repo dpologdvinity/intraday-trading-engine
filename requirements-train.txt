@@ -1,10 +1,10 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 -r requirements-runtime.txt
-stable-baselines3==2.9.0
+stable-baselines3==2.9.2
 torch==2.14.1+cpu
-onnx==1.23.1
+onnx==1.23.2
 lightgbm==4.7.0
 scipy==1.18.1
 onnxscript==0.7.2
-pytest==9.1.1
-ruff==0.16.10
+pytest==9.2.0
+ruff==0.17.3
