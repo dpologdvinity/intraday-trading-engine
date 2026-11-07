@@ -19,7 +19,7 @@ onnxscript==0.7.2
 packaging==26.3
 pluggy==1.6.0
 protobuf==7.36.2
-pyarrow==23.0.1
+pyarrow==26.0.1
 Pygments==2.21.0
 pytest==9.1.1
 ruff==0.16.10
