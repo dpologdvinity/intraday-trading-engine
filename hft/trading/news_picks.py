@@ -40,7 +40,6 @@ class NewsPicksRunner(OvernightRunner):
         super().__init__(config, broker, windows, **kwargs)
         self.picker = picker
         self.picks = {}  # session_id -> list of symbols
-        self.bought = {}  # session_id -> symbols bought that session
         self.refreshed = set()
 
     @staticmethod
@@ -100,12 +99,18 @@ class NewsPicksRunner(OvernightRunner):
                 picked=symbol in picks,
             )
 
+    def _bought_today(self, symbol, window):
+        """From the ledger, so a restart during the session still knows."""
+        fills = self.broker.book(symbol).account.fills
+        return any(f.signed_quantity > 0 and f.timestamp_ns >= window.open_ns for f in fills)
+
     def _entries(self, window, now):
+        if window.open_ns + ENTRY_WINDOW[1] <= now < window.close_ns:
+            self._cancel_late_entries(window, now)
         if not window.open_ns + ENTRY_WINDOW[0] <= now < window.open_ns + ENTRY_WINDOW[1]:
             return
         if not self._check_guard(window, now):
             return
-        bought = self.bought.setdefault(window.session_id, set())
         for symbol in self.picks.get(window.session_id, []):
             book = self.broker.book(symbol)
             key = (symbol, window.session_id, "entry")
@@ -122,24 +127,19 @@ class NewsPicksRunner(OvernightRunner):
             if quantity * limit < MINIMUM_NOTIONAL:
                 self.attempted.add(key)
                 continue
-            decision = self._submit(
-                symbol, "buy", quantity, "day", price, now, "entry", window, limit
-            )
-            if decision is not None and decision.allowed:
-                bought.add(symbol)
+            self._submit(symbol, "buy", quantity, "day", price, now, "entry", window, limit)
 
     def _exits(self, window, now):
         closing = window.close_ns - EXIT_BEFORE_CLOSE <= now < window.close_ns
         in_session = window.open_ns <= now < window.close_ns
         if not in_session:
             return
-        today = self.bought.get(window.session_id, set())
         for symbol in self.config.symbols:
             book = self.broker.book(symbol)
             position = book.account.position
             if position <= 0 or book.pending:
                 continue
-            if not closing and symbol in today:
+            if not closing and self._bought_today(symbol, window):
                 continue  # today's pick: hold until five minutes before the close
             step = f"exit-{(now - window.open_ns) // MINUTE}"  # retry each minute
             if (symbol, window.session_id, step) in self.attempted:

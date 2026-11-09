@@ -133,6 +133,8 @@ class MomentumRunner(OvernightRunner):
             self._submit(symbol, "sell", position, "day", price, now, step, window)
 
     def _entries(self, window, now):
+        if window.open_ns + TRADE_WINDOW[1] <= now < window.close_ns:
+            self._cancel_late_entries(window, now)
         if not self._in_window(window, now) or not self._check_guard(window, now):
             return
         target = self._target(window, now)

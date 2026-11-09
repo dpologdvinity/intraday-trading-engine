@@ -384,6 +384,15 @@ class OvernightRunner:
                 if (symbol, window.session_id, step) not in self.attempted:
                     self._submit(symbol, "sell", position, "day", price, now, step, window)
 
+    def _cancel_late_entries(self, window, now):
+        """A day limit the price ran away from would stay open all day."""
+        for symbol in self.config.symbols:
+            book = self.broker.book(symbol)
+            order = book.pending
+            if order and order.intent.side == "buy" and not order.cancel_requested:
+                self._quality("entry not filled in the entry window; cancelled", [symbol])
+                book.cancel()
+
     def _check_guard(self, window, now):
         """Once per session before entries: one overnight cycle since the last check."""
         key = (None, window.session_id, "guard")

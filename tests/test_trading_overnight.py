@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import numpy as np
@@ -63,7 +64,9 @@ class Exchange:
         self.positions[order["symbol"]] = self.positions.get(order["symbol"], 0) + sign * qty
         self.cash -= sign * qty * price
         order.update(status="filled", filled_qty=order["qty"], filled_avg_price=str(price))
-        order["filled_at"] = "2025-01-06T21:00:00Z"
+        order["filled_at"] = (
+            datetime.fromtimestamp(due / NS, UTC).isoformat().replace("+00:00", "Z")
+        )
 
     def _due(self, body):
         now = self.clock()
@@ -567,3 +570,123 @@ def test_momentum_buys_this_months_choice_after_the_open(tmp_path):
     assert Decimal(summary["SMALL"]["position"]) > 0  # held into the next session
     assert broker.extra["momentum"] == {"month": "2025-01", "symbols": ["SMALL"]}
     assert any(r["event"] == "picks" and r["picked"] for r in _rows(tmp_path, "SMALL"))
+
+
+def _news_picks(tmp_path, clock, exchange, quotes=prices):
+    from hft.trading.news_picks import NewsPicksRunner
+
+    budgets = {"BIG": 1000, "SMALL": 100}
+    broker = PortfolioBroker(
+        exchange,
+        budgets,
+        Costs(0, 0),
+        lambda s: budget_gateway(budgets[s]),
+        run_dir=tmp_path / "state",
+        identity="run",
+        clock=clock,
+        book_class=OvernightBook,
+    )
+    config = OvernightConfig(
+        "test",
+        tuple(budgets),
+        budgets,
+        parse_strategy("news-picks:/frozen"),
+        log_dir=tmp_path / "logs",
+        run_dir=tmp_path / "state",
+    )
+    runner = NewsPicksRunner(
+        config,
+        broker,
+        [DAY1, DAY2],
+        picker=FakePicker(),
+        clock=clock,
+        sleep=clock.sleep,
+        prices=lambda symbols: {s: (quotes(s, clock()), clock()) for s in symbols},
+    )
+    return broker, runner
+
+
+def test_news_picks_cancel_an_entry_the_market_ran_away_from(tmp_path):
+    """2026-11-09: STX and WDC day limits 1% above the last trade never filled after a
+    gap up; the 3-hour stuck-order rule then stopped the whole run at 12:31."""
+    clock = Clock(START)
+
+    def gapped(symbol, at):
+        return prices(symbol, at) * (Decimal("1.05") if at >= DAY2.open_ns else 1)
+
+    exchange = Exchange(clock, gapped)
+    broker, runner = _news_picks(tmp_path, clock, exchange)
+    try:
+        summary = asyncio.run(runner.run(until_ns=DAY2.close_ns + 600 * NS))
+    finally:
+        broker.close()
+    assert [(s, side) for s, side, _, _ in exchange.posts] == [("SMALL", "buy")]
+    order = next(iter(exchange.orders.values()))
+    assert order["status"] == "canceled"
+    assert Decimal(summary["SMALL"]["position"]) == 0
+
+
+def test_news_picks_keep_todays_pick_after_a_restart(tmp_path):
+    """2026-11-09: a restart at 12:40 sold SNDK, bought at the open, as if it were left
+    over from an earlier day."""
+    clock = Clock(START)
+    exchange = Exchange(clock, prices)
+    broker, runner = _news_picks(tmp_path, clock, exchange)
+    try:
+        asyncio.run(runner.run(until_ns=DAY2.open_ns + 1800 * NS))
+    finally:
+        broker.close()
+    broker, runner = _news_picks(tmp_path, clock, exchange)
+    try:
+        asyncio.run(runner.run(until_ns=DAY2.close_ns + 600 * NS))
+    finally:
+        broker.close()
+    sides = [(s, side, at) for s, side, _, at in exchange.posts]
+    assert [(s, side) for s, side, _ in sides] == [("SMALL", "buy"), ("SMALL", "sell")]
+    assert sides[1][2] >= DAY2.close_ns - 300 * NS
+
+
+def test_momentum_cancels_a_buy_the_price_ran_away_from(tmp_path):
+    from hft.trading.momentum import MomentumRunner
+
+    clock = Clock(START)
+
+    def gapped(symbol, at):
+        return prices(symbol, at) * (Decimal("1.05") if at >= DAY2.open_ns else 1)
+
+    exchange = Exchange(clock, gapped)
+    budgets = {"BIG": 1000, "SMALL": 100}
+    broker = PortfolioBroker(
+        exchange,
+        budgets,
+        Costs(0, 0),
+        lambda s: budget_gateway(budgets[s]),
+        run_dir=tmp_path / "state",
+        identity="run",
+        clock=clock,
+        book_class=OvernightBook,
+    )
+    config = OvernightConfig(
+        "test",
+        tuple(budgets),
+        budgets,
+        parse_strategy("momentum"),
+        log_dir=tmp_path / "logs",
+        run_dir=tmp_path / "state",
+    )
+    runner = MomentumRunner(
+        config,
+        broker,
+        [DAY1, DAY2],
+        data_root=tmp_path,
+        closes=lambda root, symbols: _momentum_history([(100, 101), (100, 140)]),
+        top=1,
+        clock=clock,
+        sleep=clock.sleep,
+        prices=lambda symbols: {s: (prices(s, clock()), clock()) for s in symbols},
+    )
+    try:
+        asyncio.run(runner.run(until_ns=DAY2.close_ns + 600 * NS))
+    finally:
+        broker.close()
+    assert [o["status"] for o in exchange.orders.values()] == ["canceled"]
