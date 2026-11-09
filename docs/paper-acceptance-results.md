@@ -115,3 +115,14 @@ instance down after the last terminal closed (its default idle timeout is 15 s),
 which kills background processes without a trace. Four sessions were missed. The
 idle shutdown is now disabled (`instanceIdleTimeout=-1` in `.wslconfig`) and the run
 was restarted on 2026-10-25 from its saved state.
+
+## 2026-11-09: unfilled entries and a restart that sold a pick
+
+News-picks bought WDC, STX and SNDK at 09:31 with day limits 1% above the last trade.
+SNDK filled; WDC and STX opened higher and their limits never filled. At 12:31 the
+3-hour stuck-order rule stopped the run, the watchdog restarted it at 12:40, and the
+restarted run sold SNDK at once, because it kept "bought today" only in memory and
+treated SNDK as a leftover from an earlier day. Entries now cancel when their window
+ends (news-picks after 10 minutes, momentum after an hour), and today's buys are read
+from the ledger (5dc6f00). The momentum run, on its own paper account since 11-06,
+holds its ten November picks.
