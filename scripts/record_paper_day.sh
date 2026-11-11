@@ -18,7 +18,8 @@ export PATH="$HOME/go/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
 
 doc="docs/$run-forward.md"
 .venv/bin/python scripts/paper_report.py --run "$run" --markdown "$doc" > /dev/null
-if ! git ls-files --error-unmatch "$doc" > /dev/null 2>&1 || ! git diff --quiet -- "$doc"; then
+# Compare with HEAD, so a record staged by an earlier failed commit is committed too.
+if ! git cat-file -e "HEAD:$doc" 2> /dev/null || ! git diff --quiet HEAD -- "$doc"; then
   git add -- "$doc"
   git commit -q -m "docs: record the $run paper session of $(date +%F)" -- "$doc"
   git push -q
