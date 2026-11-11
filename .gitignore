@@ -1,15 +1,35 @@
+# Python
 .venv/
 __pycache__/
+*.pyc
 .pytest_cache/
+.ruff_cache/
 *.egg-info/
 build/
 dist/
+
+# C++ and frontend builds
+cpp/build/
+frontend/node_modules/
+frontend/dist/
+
+# Local data, results and state (never committed)
 artifacts/
 data/
 logs/
-.env
 .state/
+tmp/
 :memory:.ses
-frontend/node_modules/
-frontend/dist/
-cpp/build/
+
+# Secrets and machine-local config
+.env
+.env.*
+!.env.example
+*.local.*
+.envrc
+
+# Agent scratch: run ledgers, worktrees, browser captures, tool caches
+.superpowers/
+.worktrees/
+.playwright-mcp/
+.impeccable/
