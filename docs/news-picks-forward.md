@@ -31,6 +31,11 @@ broker; results over a few days cannot establish an edge.
 | 2026-11-06 | LITE, LRCX, SNDK | LITE | 537.74 | 537.23 | -0.98 | -9 |
 | 2026-11-06 | LITE, LRCX, SNDK | LRCX | 202.72 | 200.60 | -10.12 | -105 |
 | 2026-11-06 | LITE, LRCX, SNDK | SNDK | 858.29 | 834.45 | -26.32 | -278 |
+| 2026-11-09 | WDC, STX, SNDK | SNDK | 841.16 | 896.00 | +62.28 | +652 |
+| 2026-11-10 | - | - | | | | |
+| 2026-11-11 | NBIS, WDC, STX | NBIS | 151.07 | 154.09 | +19.23 | +200 |
+| 2026-11-11 | NBIS, WDC, STX | STX | 542.15 | 550.70 | +15.54 | +158 |
+| 2026-11-11 | NBIS, WDC, STX | WDC | 307.84 | 311.81 | +12.72 | +129 |
 
 | Session | Net $ | Return on invested | Cumulative $ |
 | --- | ---: | ---: | ---: |
@@ -39,5 +44,7 @@ broker; results over a few days cannot establish an edge.
 | 2026-10-27 | -2.56 | -0.09% | +5.38 |
 | 2026-10-29 | +16.40 | +0.55% | +21.77 |
 | 2026-11-06 | -37.42 | -1.27% | -15.64 |
+| 2026-11-09 | +62.28 | +6.52% | +46.64 |
+| 2026-11-11 | +47.48 | +1.62% | +94.12 |
 
-Total -15.64 over 15 trades on 5 sessions.
+Total +94.12 over 19 trades on 7 sessions.
