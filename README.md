@@ -219,6 +219,8 @@ replay, dry runs, broker paper trading, graduation and live activation.
 - [Performance results](docs/performance-results.md), [replay results](docs/replay-results.md), [paper acceptance results](docs/paper-acceptance-results.md), [intraday momentum results](docs/intraday-momentum-results.md), [overnight and multi-day results](docs/multiday-results.md), [overnight auction results](docs/overnight-auction-results.md), [ML day-trader results](docs/ml-daytrader-results.md), [longer-horizon results](docs/longer-horizons-results.md), [analyst-upgrade results](docs/analyst-upgrade-results.md), [development readiness results](docs/research-readiness-results.md)
   and [free-data suitability results](docs/free-data-suitability-results.md).
 - [Research roadmap](docs/research-improvement-roadmap.md) and [dashboard design system](DESIGN.md).
+- [Contributing](CONTRIBUTING.md) and [agent instructions](AGENTS.md): setup, checks, conventions,
+  and the spec → plan → review workflow used with coding agents ([specs](docs/specs/), [plans](docs/plans/), [skills](.agents/skills/)).
 
 ## Limitations
 
@@ -233,4 +235,5 @@ replay, dry runs, broker paper trading, graduation and live activation.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). The vendored agent skills in `.agents/skills/` are Apache-2.0
+([notice](.agents/skills/README.md#attribution)).
