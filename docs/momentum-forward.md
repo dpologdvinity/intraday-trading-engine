@@ -7,6 +7,9 @@ broker; results over a few days cannot establish an edge.
 | Session | Picks | Stock | Bought | Sold | Net $ | bp |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
 | 2026-11-06 | SNDK, LITE, MU, STX, DELL, WDC, INTC, AMD, AMAT, LRCX | - | | | | |
+| 2026-11-09 | - | - | | | | |
+| 2026-11-10 | - | - | | | | |
+| 2026-11-11 | - | - | | | | |
 
 | Session | Net $ | Return on invested | Cumulative $ |
 | --- | ---: | ---: | ---: |
