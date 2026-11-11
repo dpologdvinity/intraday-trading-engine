@@ -13,6 +13,8 @@ backup=${HFT_RECORDS:-$HOME/git/hft-paper-records}
 cd "$root"
 # Cron starts without the login environment: read the market-data keys from .env.
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
+# Cron has a minimal PATH; the pre-commit hooks need gitleaks and typos.
+export PATH="$HOME/go/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
 
 doc="docs/$run-forward.md"
 .venv/bin/python scripts/paper_report.py --run "$run" --markdown "$doc" > /dev/null

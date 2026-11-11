@@ -75,6 +75,8 @@ def iter_log(path):
     with Path(path).open() as stream:
         for sequence, line in enumerate(stream):
             if not line.endswith("\n"):
+                if not line.strip("\0"):
+                    break  # zero-filled tail of an unflushed write: the machine stopped
                 raise ValueError("truncated execution journal")
             try:
                 row = json.loads(line)
