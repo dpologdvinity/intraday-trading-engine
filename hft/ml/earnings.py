@@ -11,7 +11,7 @@ data root so that root's manifest is unchanged.
 
 The news store (`hft.ml.news`) carries Benzinga headlines such as "Oracle Q2 EPS $1.21
 Beats $1.18 Estimate"; `parse_eps_headline` reads the reported EPS and the consensus
-from them, and `earnings_events` attaches the earliest such headline to each filing.
+from them, and `earnings_events` attaches every such headline to its filing.
 
     .venv/bin/python -m hft.ml.earnings
 """
@@ -229,6 +229,8 @@ _HEADLINE = re.compile(
     rf"|(?P<inline>Inline)\b)",
     re.IGNORECASE,
 )
+# Anywhere in a headline: a GAAP figure against an adjusted consensus, or a rumor.
+_UNRELIABLE = re.compile(r"\bNot Compare\b|\bHearing\b", re.IGNORECASE)
 _GUIDANCE = re.compile(r"\b(Sees|Raises|Lowers|Reaffirms|Guidance|Forecast|From)\b", re.IGNORECASE)
 
 
@@ -243,12 +245,15 @@ def parse_eps_headline(text: str) -> tuple[float, float] | None:
 
     Accepted: "<Company> Q<n> [year] [Adj./GAAP] EPS <value> Beats|Misses|vs <value>
     Estimate" ("Est." too) and "... EPS <value>, Inline" (the estimate equals the
-    result). Losses
-    may be written "$(0.12)", "-$0.12" or "Loss $0.12". Rejected as ambiguous: guidance
-    ("Sees", "Raises", ...), "May Not Compare" and "Does Not Compare" (GAAP against an
-    adjusted consensus), and any headline whose verb contradicts its numbers.
+    result). Losses may be written "$(0.12)", "-$0.12" or "Loss $0.12". Rejected as
+    ambiguous: guidance ("Sees", "Raises", ...), any headline containing "Not Compare"
+    (a GAAP figure against an adjusted consensus) or "Hearing" (a rumor), and any
+    headline whose verb contradicts its numbers.
     """
-    match = _HEADLINE.match(text.strip())
+    text = text.strip()
+    if _UNRELIABLE.search(text):
+        return None
+    match = _HEADLINE.match(text)
     if match is None or _GUIDANCE.search(match.group("company")):
         return None
     loss = match.group("loss") is not None
@@ -268,28 +273,39 @@ def parse_eps_headline(text: str) -> tuple[float, float] | None:
 # Events ------------------------------------------------------------------------------
 
 
+Headline = tuple[int, str, float, float]  # (first published ns, text, actual, estimate)
+
+
 @dataclass(frozen=True)
 class EarningsEvent:
-    """One 8-K Item 2.02 filing and, when found, its consensus headline."""
+    """One 8-K Item 2.02 filing and the consensus headlines matched to it."""
 
     symbol: str
     accession: str
     acceptance_ns: int
-    event_ns: int  # earliest of the acceptance and the headline
-    headline_ns: int | None = None
-    headline: str | None = None
-    actual: float | None = None
-    estimate: float | None = None
+    event_ns: int  # earliest of the acceptance and the first matched headline
+    headlines: tuple[Headline, ...] = ()  # oldest first
 
     @property
-    def beat(self) -> bool:
-        return self.actual is not None and self.estimate is not None and self.actual > self.estimate
+    def headline_ns(self) -> int | None:
+        return self.headlines[0][0] if self.headlines else None
+
+    def known_at(self, ns: int) -> Headline | None:
+        """The latest matched headline published before `ns`: corrections and the
+        adjusted figure, when out by then, supersede an earlier headline."""
+        known = [h for h in self.headlines if h[0] < ns]
+        return known[-1] if known else None
+
+    def beat_at(self, ns: int) -> bool | None:
+        """Whether the EPS beat the consensus as known before `ns` (None: no headline)."""
+        headline = self.known_at(ns)
+        return None if headline is None else headline[2] > headline[3]
 
 
 def earnings_events(filings: pa.Table, news: pa.Table, symbols: Sequence[str]):
     """One event per filing of `symbols`. A headline matches a filing when it is
     tagged with that stock and no other of `symbols`, was first published within a
-    day of the acceptance, and parses; the earliest match (then lowest id) is kept."""
+    day of the acceptance, and parses."""
     universe = set(symbols)
     tagged: dict[str, list[tuple[int, int, str]]] = {s: [] for s in symbols}
     columns = (news.column(c).to_pylist() for c in ("created_ns", "id", "headline", "symbols"))
@@ -306,32 +322,23 @@ def earnings_events(filings: pa.Table, news: pa.Table, symbols: Sequence[str]):
         accepted = row["acceptance_ns"]
         rows = tagged[row["symbol"]]
         first = bisect_left(rows, (accepted - DAY_NS,))
-        match = rows[first] if first < len(rows) and rows[first][0] <= accepted + DAY_NS else None
-        if match is None:
-            events.append(EarningsEvent(row["symbol"], row["accession"], accepted, accepted))
-            continue
-        created, _, headline = match
-        parsed = parse_eps_headline(headline)
-        assert parsed is not None  # only parsed headlines were kept
-        actual, estimate = parsed
+        last = bisect_right(rows, (accepted + DAY_NS, sys.maxsize))
+        matched = []
+        for created, _, headline in rows[first:last]:
+            parsed = parse_eps_headline(headline)
+            assert parsed is not None  # only parsed headlines were kept
+            matched.append((created, headline, *parsed))
+        event_ns = min(accepted, matched[0][0]) if matched else accepted
         events.append(
-            EarningsEvent(
-                row["symbol"],
-                row["accession"],
-                accepted,
-                min(accepted, created),
-                created,
-                headline,
-                actual,
-                estimate,
-            )
+            EarningsEvent(row["symbol"], row["accession"], accepted, event_ns, tuple(matched))
         )
     return sorted(events, key=lambda e: (e.event_ns, e.symbol, e.accession))
 
 
-def first_open_at_or_after(ns: int, opens: Sequence[int]) -> int | None:
-    """Index of the first session whose open is at or after `ns`."""
-    index = bisect_left(opens, ns)
+def first_open_after(ns: int, opens: Sequence[int]) -> int | None:
+    """Index of the first session whose open is strictly after `ns`, so that news
+    published at 09:30:00 is not traded in that morning's opening auction."""
+    index = bisect_right(opens, ns)
     return index if index < len(opens) else None
 
 

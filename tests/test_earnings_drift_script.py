@@ -33,32 +33,50 @@ def _sessions(start, count):
     return days, midnight + 14 * HOUR + HOUR // 2, midnight + 21 * HOUR
 
 
-def _event(symbol, ns, headline_ns=None, actual=None, estimate=None):
-    return EarningsEvent(
-        symbol,
-        f"{symbol}-{ns}",
-        ns,
-        min(ns, headline_ns or ns),
-        headline_ns,
-        "headline" if headline_ns else None,
-        actual,
-        estimate,
-    )
+def _event(symbol, ns, headline_ns=None, actual=None, estimate=None, later=()):
+    """An event with an optional headline and later (time, actual, estimate) ones."""
+    headlines = [(headline_ns, "headline", actual, estimate)] if headline_ns else []
+    headlines += [(t, "later", a, e) for t, a, e in later]
+    return EarningsEvent(symbol, f"{symbol}-{ns}", ns, min(ns, headline_ns or ns), tuple(headlines))
 
 
 def test_beats_enter_at_the_first_open_after_the_headline_and_misses_are_kept_apart():
     module = _module()
-    _, open_ns, _ = _sessions("2023-01-02", 5)
+    _, open_ns, _ = _sessions("2023-01-02", 8)
     events = [
         _event("A", open_ns[1] - 3 * HOUR, open_ns[1] - 3 * HOUR, 1.1, 1.0),  # pre-open
         _event("B", open_ns[1] + HOUR, open_ns[1] + HOUR, 1.1, 1.0),  # during the session
         _event("C", open_ns[1] - HOUR, open_ns[2] - 2 * HOUR, 1.1, 1.0),  # headline later
         _event("A", open_ns[3] - HOUR, open_ns[3] - HOUR, 0.9, 1.0),  # a miss
         _event("B", open_ns[3] - HOUR),  # no headline: neither
+        _event("C", open_ns[4], open_ns[4], 1.1, 1.0),  # at the open: the next one
     ]
     beats, misses = module.beat_signals(events, ["A", "B", "C"], open_ns)
-    assert np.argwhere(beats).tolist() == [[1, 0], [2, 1], [2, 2]]
+    assert np.argwhere(beats).tolist() == [[1, 0], [2, 1], [2, 2], [5, 2]]
     assert np.argwhere(misses).tolist() == [[3, 0]]
+
+
+def test_the_label_is_the_latest_headline_before_the_entry_open():
+    module = _module()
+    _, open_ns, _ = _sessions("2023-01-02", 4)
+    first = open_ns[1] - 17 * HOUR  # 16:30 the day before
+    events = [
+        # Corrected to a miss at 18:20, before the open: a miss.
+        _event("A", first, first, 0.12, -0.02, later=[(first + 2 * HOUR, -0.46, -0.02)]),
+        # Corrected to a beat only after the open: still a miss at entry.
+        _event("B", first, first, 1.0, 1.0, later=[(open_ns[1] + HOUR, 1.2, 1.0)]),
+    ]
+    beats, misses = module.beat_signals(events, ["A", "B"], open_ns)
+    assert not beats.any()
+    assert np.argwhere(misses).tolist() == [[1, 0], [1, 1]]
+
+
+def test_a_headline_from_before_the_stored_sessions_is_not_traded_late():
+    module = _module()
+    _, open_ns, _ = _sessions("2023-01-02", 4)
+    early = open_ns[0] - 10 * 86_400 * 10**9
+    beats, misses = module.beat_signals([_event("A", early, early, 1.1, 1.0)], ["A"], open_ns)
+    assert not beats.any() and not misses.any()
 
 
 def test_announcement_entries_never_enter_before_day_zero_closes():
@@ -156,17 +174,25 @@ def test_prices_stop_at_the_cutoff_and_skip_bars_before_a_listing(tmp_path):
     assert np.isnan(opens[:2, 1]).all() and opens[2, 1] == 3.0  # NBIS listed 2024-10-21
 
 
-def test_the_test_years_need_a_committed_report_and_run_once(tmp_path, monkeypatch):
+def test_the_test_years_need_a_committed_report_one_rule_and_run_once(tmp_path, monkeypatch):
     module = _module()
-    monkeypatch.setattr(module, "REGISTRY", tmp_path / "final.json")
+    registry = tmp_path / "final.json"
+    monkeypatch.setattr(module, "REGISTRY", registry)
     monkeypatch.setattr(module, "RESULTS_DOC", "docs/no-such-report.md")
-    monkeypatch.setattr(module, "evaluate", lambda *a: pytest.fail("evaluated test years"))
+    calls = []
+    monkeypatch.setattr(module, "evaluate", lambda *a: calls.append(a) or {})
     output = tmp_path / "out.json"
+    final = ["--final", "--rule", "consensus_beat", "--output", str(output)]
     with pytest.raises(SystemExit):
-        module.main(["--final", "--output", str(output)])
-    assert not (tmp_path / "final.json").exists()
-    monkeypatch.setattr(module, "RESULTS_DOC", "README.md")  # committed
-    (tmp_path / "final.json").write_text("{}")
+        module.main(final)  # report not committed
+    monkeypatch.setattr(module, "RESULTS_DOC", "README.md")  # in HEAD
     with pytest.raises(SystemExit):
-        module.main(["--final", "--output", str(output)])
-    assert not output.exists()
+        module.main(["--final", "--output", str(output)])  # no rule named
+    with pytest.raises(SystemExit):
+        module.main(["--rule", "consensus_beat", "--output", str(output)])  # rule without final
+    assert not registry.exists() and not calls
+    module.main(final)
+    assert calls[0][2:] == (["test"], ("consensus_beat",)) and registry.exists()
+    with pytest.raises(SystemExit):
+        module.main(final)  # only once
+    assert len(calls) == 1

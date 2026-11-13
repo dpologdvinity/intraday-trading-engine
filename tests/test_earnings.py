@@ -18,7 +18,7 @@ from hft.ml.earnings import (
     earnings_events,
     earnings_filings,
     first_close_after,
-    first_open_at_or_after,
+    first_open_after,
     parse_eps_headline,
     read_filings,
 )
@@ -164,6 +164,8 @@ def test_cik_map_upper_cases_tickers():
         ("Adobe Q1 Earnings: Revenue Beat, EPS Beat, Soft Guidance", None),
         ("Acme Q1 EPS $1.00 Beats $1.10 Estimate", None),
         ("Acme Q1 EPS $1.00 Misses $1.00 Estimate", None),
+        ("Morgan Stanley Q4 EPS $0.80 Misses $0.92 Estimate, Sales $8.5B, May Not Compare", None),
+        ("Hearing Bank of America Q1 EPS $0.21 vs $0.21 est", None),
     ],
 )
 def test_parse_eps_headline(text, expected):
@@ -206,24 +208,47 @@ def _news(*rows):
     )
 
 
-def test_events_take_the_earliest_parsed_headline_of_that_stock_within_a_day():
+def test_events_keep_every_parsed_headline_of_that_stock_within_a_day():
     accepted = _ns("2024-08-01T20:31:00+00:00")
     filings = _filings(("AAPL", "a1", accepted), ("MSFT", "m1", accepted))
     news = _news(
         (accepted - 2 * 86_400 * 10**9, "Apple Q2 EPS $1.00 Beats $0.90 Estimate", ["AAPL"]),
-        (accepted + 3 * 10**9, "Apple Q3 EPS $1.40 Misses $1.45 Estimate", ["AAPL"]),
+        (accepted + 3 * 10**9, "Apple Q3 Adj. EPS $1.40 Misses $1.45 Estimate", ["AAPL"]),
         (accepted - 60 * 10**9, "Apple Q3 EPS $1.40 Beats $1.35 Estimate", ["AAPL"]),
         (accepted - 90 * 10**9, "Apple Q3 earnings are out", ["AAPL"]),  # not parsed
         (accepted, "Microsoft Q4 EPS $2.95 Beats $2.93 Estimate", ["MSFT", "AAPL"]),
     )
     events = earnings_events(filings, news, ["AAPL", "MSFT"])
     apple = next(e for e in events if e.symbol == "AAPL")
+    assert [h[0] for h in apple.headlines] == [accepted - 60 * 10**9, accepted + 3 * 10**9]
     assert apple.headline_ns == accepted - 60 * 10**9
     assert apple.event_ns == apple.headline_ns  # the earlier of headline and filing
-    assert (apple.actual, apple.estimate, apple.beat) == (1.4, 1.35, True)
     microsoft = next(e for e in events if e.symbol == "MSFT")
-    assert microsoft.headline is None  # tagged with two universe stocks: not matched
-    assert microsoft.event_ns == accepted and not microsoft.beat
+    assert microsoft.headlines == ()  # tagged with two universe stocks: not matched
+    assert microsoft.event_ns == accepted and microsoft.beat_at(accepted + 1) is None
+
+
+def test_a_correction_published_before_the_entry_decides_beat_or_miss():
+    # Intel, 2024-10-31: "Adj EPS $0.12 Beats $(0.02)" at 16:03, corrected at 17:51 to
+    # "Adj EPS $(0.46) Misses $(0.02)". Disney, 2024-02-07: "Inline", then a beat.
+    accepted = _ns("2024-10-31T20:05:00+00:00")
+    first, correction = accepted - 2 * 60 * 10**9, accepted + 106 * 60 * 10**9
+    news = _news(
+        (first, "Intel Q3 Adj EPS $0.12 Beats $(0.02) Estimate", ["INTC"]),
+        (correction, "CORRECTION: Intel Q3 Adj EPS $(0.46) Misses $(0.02) Estimate", ["INTC"]),
+        (accepted, "Walt Disney Q1 Adj. EPS $1.22, Inline", ["DIS"]),
+        (accepted + 600 * 10**9, "Walt Disney Q1 Adj. EPS $1.22 Beats $0.99 Estimate", ["DIS"]),
+    )
+    filings = _filings(("INTC", "i1", accepted), ("DIS", "d1", accepted))
+    intel, disney = sorted(earnings_events(filings, news, ["INTC", "DIS"]), key=lambda e: e.symbol)[
+        ::-1
+    ]
+    next_open = _ns("2024-11-01T13:30:00+00:00")
+    assert intel.beat_at(first + 1) is True
+    assert intel.beat_at(next_open) is False  # the correction was public by the open
+    assert intel.known_at(next_open)[0] == correction
+    assert intel.beat_at(correction) is True  # strictly before: not yet known
+    assert disney.beat_at(accepted + 1) is False and disney.beat_at(next_open) is True
 
 
 def test_entry_after_a_pre_open_report_is_that_morning_after_the_close_the_next():
@@ -231,10 +256,10 @@ def test_entry_after_a_pre_open_report_is_that_morning_after_the_close_the_next(
     closes = [_ns("2024-08-01T20:00:00+00:00"), _ns("2024-08-02T20:00:00+00:00")]
     pre_open = _ns("2024-08-01T10:45:00+00:00")  # 06:45 New York
     after_close = _ns("2024-08-01T20:30:00+00:00")  # 16:30 New York
-    assert first_open_at_or_after(pre_open, opens) == 0
-    assert first_open_at_or_after(opens[0], opens) == 0  # at the open counts
-    assert first_open_at_or_after(after_close, opens) == 1
-    assert first_open_at_or_after(closes[1], opens) is None
+    assert first_open_after(pre_open, opens) == 0
+    assert first_open_after(opens[0], opens) == 1  # at 09:30:00: too late for the auction
+    assert first_open_after(after_close, opens) == 1
+    assert first_open_after(closes[1], opens) is None
     # Day 0 is the first session whose close is after the announcement.
     assert first_close_after(pre_open, closes) == 0
     assert first_close_after(closes[0], closes) == 1  # at the close: the next session

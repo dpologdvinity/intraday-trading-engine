@@ -7,7 +7,8 @@ before the announcement, net of the equal-weight universe). Both hold five sessi
 and pay the universe's half-spread plus 1 bp slippage per side, and are judged
 against the equal-weight return of the same 60 stocks. Development (2016-2022) and
 holdout (2023-2024) only, reading no bar after 2024; the test years run with
---final, once, for a rule that passed and after the results doc is committed.
+--final --rule NAME, once, for a rule that passed and after the results doc is
+committed.
 
     .venv/bin/python scripts/earnings_drift.py --output artifacts/earnings-drift/holdout.json
 """
@@ -16,7 +17,7 @@ import argparse
 import json
 import subprocess
 import sys
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +26,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from hft.ml.earnings import first_close_after, first_open_at_or_after
+from hft.ml.earnings import first_close_after, first_open_after
 from hft.ml.rule_tests import (
     LEVEL,
     SEED,
@@ -38,6 +39,7 @@ from hft.ml.rule_tests import (
 )
 
 HOLD = 5  # sessions, open to open
+STALE_NS = 4 * 86_400 * 10**9  # rule 1 skips a headline older than this at the entry open
 RULES = ("consensus_beat", "announcement_return")
 REGISTRY = ROOT / ".state" / "earnings-drift-final.json"
 RESULTS_DOC = "docs/earnings-drift-results.md"
@@ -50,10 +52,17 @@ def cutoff(splits):
 
 def load_prices(root, symbols, last_day):
     """Session dates, open and close times (ns) and (D, S) opens and closes, for
-    sessions up to `last_day`. Prices before a stock's first universe date are NaN."""
-    from hft.ml.download import load_calendar, read_bars
-    from hft.ml.features import _day
+    sessions up to `last_day`. Bars after `last_day` are filtered out as the files are
+    read. Prices before a stock's first universe date are NaN."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from hft.ml.download import SCHEMA, load_calendar
+    from hft.ml.features import NEW_YORK, _day
     from hft.ml.universe import UNIVERSE
+
+    following = datetime.combine(last_day + timedelta(days=1), datetime.min.time(), NEW_YORK)
+    limit = [("t", "<", int(following.timestamp()) * 10**9)]
 
     sessions = [w for w in load_calendar(root) if w.session_id <= last_day.isoformat()]
     dates = np.array([w.session_id for w in sessions], dtype="datetime64[D]")
@@ -64,7 +73,9 @@ def load_prices(root, symbols, last_day):
     closes = np.full_like(opens, np.nan)
     row_of = {d: i for i, d in enumerate(dates)}
     for k, symbol in enumerate(symbols):
-        table = read_bars(root, "1Day", symbol)
+        files = sorted((Path(root) / "1Day" / symbol).glob("*.parquet"))
+        tables = [pq.read_table(f, schema=SCHEMA, filters=limit) for f in files]
+        table = pa.concat_tables(tables) if tables else SCHEMA.empty_table()
         for t, o, c in zip(*(table.column(n).to_numpy() for n in "toc"), strict=True):
             day = _day(t)
             if day > dates[-1] or day < first[symbol]:
@@ -76,17 +87,21 @@ def load_prices(root, symbols, last_day):
 
 
 def beat_signals(events, symbols, open_ns):
-    """Rule 1 and its misses control: (D, S) entry masks at the first open at or
-    after the headline (the moment the beat or miss is known)."""
+    """Rule 1 and its misses control: (D, S) entry masks at the first open after the
+    first matched headline, labelled by the latest headline published before that
+    open (a correction out by then supersedes the first report). Headlines older than
+    STALE_NS at the open (before the first stored session) are skipped."""
     index = {s: k for k, s in enumerate(symbols)}
     beats = np.zeros((len(open_ns), len(symbols)), bool)
     misses = np.zeros_like(beats)
     for event in events:
         if event.headline_ns is None or event.symbol not in index:
             continue
-        row = first_open_at_or_after(event.headline_ns, open_ns)
-        if row is not None:
-            (beats if event.beat else misses)[row, index[event.symbol]] = True
+        row = first_open_after(event.headline_ns, open_ns)
+        if row is None or open_ns[row] - event.headline_ns > STALE_NS:
+            continue
+        beat = event.beat_at(int(open_ns[row]))
+        (beats if beat else misses)[row, index[event.symbol]] = True
     return beats, misses
 
 
@@ -133,51 +148,32 @@ def _summary(trades, split):
     return out
 
 
-def evaluate_arrays(dates, open_ns, close_ns, opens, closes, events, symbols, half, splits):
-    """Both rules and the reported-only controls on prepared arrays."""
+def evaluate_arrays(
+    dates, open_ns, close_ns, opens, closes, events, symbols, half, splits, rules=RULES
+):
+    """The chosen rules on prepared arrays, plus the reported-only controls unless a
+    single rule is being run on the test years."""
     shape = opens.shape
     beats, misses = beat_signals(events, symbols, open_ns)
     entries = announcement_entries(events, symbols, close_ns, closes)
-    positive = entry_mask(entries, shape, lambda v: v > 0)
-    every = entry_mask(entries, shape)
+    signals = {"consensus_beat": beats, "announcement_return": entry_mask(entries, shape, _up)}
     result: dict[str, Any] = {"splits": {}}
     trades_seen = []
     for multiple in (1.0, 3.0):
         costs = side_costs(half, multiple)
         key = "costs_1x" if multiple == 1.0 else "costs_3x"
-        rules = {
-            "consensus_beat": drift(dates, opens, beats, costs, HOLD),
-            "announcement_return": drift(dates, opens, positive, costs, HOLD),
-        }
-        trades_seen += rules["consensus_beat"] + rules["announcement_return"]
+        trades = {name: drift(dates, opens, signals[name], costs, HOLD) for name in rules}
+        for name in rules:
+            trades_seen += trades[name]
         for split in splits:
             out = result["splits"].setdefault(split, {})
-            out[key] = {name: _summary(trades, split) for name, trades in rules.items()}
-    costs = side_costs(half)
-    controls = {
-        "misses": drift(dates, opens, misses, costs, HOLD),
-        "all_events": drift(dates, opens, every, costs, HOLD),
-    }
-    for split in splits:
-        out = result["splits"][split]
-        out["controls"] = {name: _summary(t, split) for name, t in controls.items()}
-        # Terciles of the announcement return among this split's events.
-        mine = [e for e in entries if in_split([str(dates[e[0]])], split)[0]]
-        terciles = []
-        if len(mine) >= 3:
-            edges = np.quantile([v for _, _, v in mine], [1 / 3, 2 / 3])
-            bounds = [(-np.inf, edges[0]), (edges[0], edges[1]), (edges[1], np.inf)]
-            for low, high in bounds:
-                mask = entry_mask(mine, shape, lambda v, lo=low, hi=high: lo < v <= hi)
-                summary = _summary(drift(dates, opens, mask, costs, HOLD), split)
-                summary["announcement_return_bp"] = [float(low * 1e4), float(high * 1e4)]
-                terciles.append(summary)
-        out["controls"]["announcement_terciles"] = terciles
-    trades_seen += controls["misses"] + controls["all_events"]
+            out[key] = {name: _summary(t, split) for name, t in trades.items()}
+    if tuple(rules) == RULES and "test" not in splits:
+        trades_seen += _controls(result, dates, opens, misses, entries, half, splits)
     result["last_exit"] = max((t["exit"] for t in trades_seen), default=None)
     splits_out = result["splits"]
     if "holdout" in splits_out and "development" in splits_out:
-        for name in RULES:
+        for name in rules:
             holdout = splits_out["holdout"]
             result[f"{name}_passes"] = bool(
                 holdout["costs_1x"][name]["mean_bp"] > 0
@@ -188,7 +184,40 @@ def evaluate_arrays(dates, open_ns, close_ns, opens, closes, events, symbols, ha
     return result
 
 
-def evaluate(root, earnings_root, splits):
+def _up(value):
+    return value > 0
+
+
+def _controls(result, dates, opens, misses, entries, half, splits):
+    """Reported-only controls at 1x costs: rule 1's misses, every event at the rule-2
+    entry, and terciles of the announcement return. Returns every trade made."""
+    costs = side_costs(half)
+    shape = opens.shape
+    controls = {
+        "misses": drift(dates, opens, misses, costs, HOLD),
+        "all_events": drift(dates, opens, entry_mask(entries, shape), costs, HOLD),
+    }
+    made = controls["misses"] + controls["all_events"]
+    for split in splits:
+        out = result["splits"][split]
+        out["controls"] = {name: _summary(t, split) for name, t in controls.items()}
+        mine = [e for e in entries if in_split([str(dates[e[0]])], split)[0]]
+        terciles = []
+        if len(mine) >= 3:
+            edges = np.quantile([v for _, _, v in mine], [1 / 3, 2 / 3])
+            bounds = [(-np.inf, edges[0]), (edges[0], edges[1]), (edges[1], np.inf)]
+            for low, high in bounds:
+                mask = entry_mask(mine, shape, lambda v, lo=low, hi=high: lo < v <= hi)
+                trades = drift(dates, opens, mask, costs, HOLD)
+                made += trades
+                summary = _summary(trades, split)
+                summary["announcement_return_bp"] = [float(low * 1e4), float(high * 1e4)]
+                terciles.append(summary)
+        out["controls"]["announcement_terciles"] = terciles
+    return made
+
+
+def evaluate(root, earnings_root, splits, rules=RULES):
     from hft.ml.earnings import earnings_events, read_filings
     from hft.ml.news import read_news
     from hft.ml.train import _costs
@@ -200,17 +229,17 @@ def evaluate(root, earnings_root, splits):
     events = earnings_events(read_filings(earnings_root), read_news(root), symbols)
     events = [e for e in events if e.event_ns <= close_ns[-1]]  # later events: no prices
     result = evaluate_arrays(
-        dates, open_ns, close_ns, opens, closes, events, symbols, _costs(symbols), splits
+        dates, open_ns, close_ns, opens, closes, events, symbols, _costs(symbols), splits, rules
     )
     if result["last_exit"] is not None and result["last_exit"] > last_day.isoformat():
         raise AssertionError(f"read prices after {last_day}: {result['last_exit']}")
     result.update(
         {
+            "rules": list(rules),
             "symbols": len(symbols),
             "event_stocks": len({e.symbol for e in events}),
             "events": len(events),
             "events_with_headline": sum(e.headline_ns is not None for e in events),
-            "beats": sum(e.beat for e in events),
             "last_session": str(dates[-1]),
         }
     )
@@ -218,7 +247,8 @@ def evaluate(root, earnings_root, splits):
 
 
 def _committed(path):
-    command = ["git", "ls-files", "--error-unmatch", path]
+    """Whether `path` is in the HEAD commit (staged is not enough)."""
+    command = ["git", "cat-file", "-e", f"HEAD:{path}"]
     return subprocess.run(command, cwd=ROOT, capture_output=True, check=False).returncode == 0
 
 
@@ -228,17 +258,22 @@ def main(argv=None):
     parser.add_argument("--earnings", type=Path, default=ROOT / "data" / "earnings")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--final", action="store_true", help="the one-time test-years run")
+    parser.add_argument("--rule", choices=RULES, help="with --final: the rule that passed")
     args = parser.parse_args(argv)
-    splits = ["development", "holdout"]
+    splits, rules = ["development", "holdout"], RULES
     if args.final:
+        if args.rule is None:
+            parser.error("--final runs one rule that passed the holdout: give --rule")
         if not _committed(RESULTS_DOC):
             parser.error(f"commit the holdout report ({RESULTS_DOC}) before the test")
         if REGISTRY.exists():
             parser.error(f"the test years were already used: {REGISTRY.read_text()}")
         REGISTRY.parent.mkdir(parents=True, exist_ok=True)
         REGISTRY.write_text(json.dumps({"started": datetime.now(UTC).isoformat()}) + "\n")
-        splits = ["test"]
-    result = evaluate(args.data, args.earnings, splits)
+        splits, rules = ["test"], (args.rule,)
+    elif args.rule is not None:
+        parser.error("--rule is only for --final")
+    result = evaluate(args.data, args.earnings, splits, rules)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
