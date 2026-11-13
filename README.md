@@ -55,7 +55,8 @@ not strategy returns; the $500 allocation is simulated.
   references, overfills or malformed messages, 37 full-book validations and a Python
   reference that matches the C++ book exactly on the first 50M messages. Measured on
   one pinned core of a shared WSL2 laptop: parsing alone takes **18.0-21.5 ns per
-  message** (goal met), parse plus book **320.7-444.4 ns** (goal of 120 ns **not met**;
+  message** (goal met), parse plus book **320.7-444.4 ns** (medians of three runs in
+  each of two bench runs; goal of 120 ns **not met**;
   not yet profiled), peak RSS 0.17 GiB. The numbers vary a lot between runs.
   [Method, goals and caveats](docs/performance-results.md#nasdaq-itch-50-order-book-november-13-2026).
 - **Measured performance work.** Profiling showed a memory-budget scan dominated
