@@ -64,6 +64,11 @@ cmake -S cpp -B cpp/build -G Ninja && cmake --build cpp/build
 ctest --test-dir cpp/build
 .venv/bin/python -m pip install -q ./cpp
 HFT_REQUIRE_HFTCORE=1 .venv/bin/python -m pytest -q tests/test_engine_parity.py
+# ITCH order book (tests use synthetic streams; real sample days stay local in data/itch/)
+HFT_REQUIRE_HFTCORE=1 .venv/bin/python -m pytest -q tests/test_itch.py tests/test_itch_parity.py tests/test_itch_parity_script.py
+gzip -dc data/itch/<day>.NASDAQ_ITCH50.gz | cpp/build/hftcore_itch_replay -
+.venv/bin/python scripts/itch_parity.py <decompressed day> --messages 5000000
+taskset -c N cpp/build/hftcore_bench_itch <decompressed day> --repeat 3   # one pinned core
 ```
 
 Dashboard: build the frontend, then `.venv/bin/python -m hft dashboard --port 8765`
@@ -78,6 +83,7 @@ engine, and C++ tests under ASan/UBSan.
 | `hft/data.py`, `hft/history.py` | Validated historical data, checksums, provenance, memory limits, read-only acquisition. |
 | `hft/feed.py`, `hft/market_engine.py`, `hft/strategies.py` | Causal bars, market engine interface (Python reference), rule strategies. |
 | `cpp/` | `hftcore` C++20 engine; must match the Python reference exactly. |
+| `hft/itch.py`, `cpp/` ITCH units (`itch`, `order_book`, `itch_book`), `cpp/bench/{bench_itch,itch_replay}.cpp`, `scripts/itch_parity.py` | Nasdaq ITCH 5.0 parser and full-depth order book; Python reference must match the C++ book exactly. Separate from the trading engine; samples stay local and are never committed. |
 | `hft/execution.py` | Quote-event execution simulator and shared timing. |
 | `hft/features.py`, `hft/env.py`, `hft/training.py` | Observations (market 0-9 / state 10-16), environment, CPU PPO, budgeted search. |
 | `hft/research.py`, `hft/evidence.py` | Frozen experiments, controls, evaluation, qualification evidence. |

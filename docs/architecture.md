@@ -102,6 +102,31 @@ requires no credentials for existing artifacts, and binds to loopback. Runtime
 broker commands are separate entry points. Real paper evidence and deliberate
 operator activation remain prerequisites for the live path.
 
+## C++ engine and the ITCH order book
+
+`hftcore` (`cpp/`) is one static library with two independent groups of units.
+
+- Trading engine: `bar_aggregator`, `features`, `market_engine`, `replay` and
+  `frame_router` reproduce the Python reference (`feed.py`, `market_engine.py`,
+  `execution.py`) bit for bit and are used automatically by backtests and the paper
+  runner when the module is installed.
+- ITCH order book: `itch` (Nasdaq ITCH 5.0 BinaryFILE parsing), `order_book`
+  (full-depth book: order pool, open-addressing order map, sorted price levels with
+  FIFO queues) and `itch_book` (feed handler: stock directory, one book per stock
+  locate, symbol filter, print and counter accounting). `hft/itch.py` is the plain
+  Python reference and `hftcore.ItchBook` the binding; tests and
+  `scripts/itch_parity.py` require identical snapshots, queues and counters.
+  Standalone tools, `hftcore_bench_itch` and `hftcore_itch_replay`, run on a
+  decompressed or piped sample day.
+
+The two groups share only the `id_set.hpp` hash mixer, the build and the Python module. No trading code
+imports `hft/itch.py` or `ItchBook`, and the engine's contracts (causal bars, feature
+schema v3) are unaffected. Data flow for ITCH is one way: sample file, framing,
+decoded messages, builder, per-stock books, aggregates. The books are rebuilt from
+messages and are not a source of quotes for the simulator or the paper bots. See the
+[design](specs/2026-11-13-itch-order-book-design.md) and
+[measured results](performance-results.md#nasdaq-itch-50-order-book-november-13-2026).
+
 ## Current measured stopping point
 
 All 52 inspected MCD development sessions failed the five-second continuity

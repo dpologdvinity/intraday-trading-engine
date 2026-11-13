@@ -50,6 +50,14 @@ not strategy returns; the $500 allocation is simulated.
   backtests use the C++ engine automatically; CI runs every test on it and the C++
   unit tests under AddressSanitizer/UBSan
   ([design](docs/specs/2026-10-07-paper-trading-runner-design.md), [engine](cpp/README.md)).
+- **Nasdaq ITCH 5.0 order book.** A C++20 parser and full-depth limit order book
+  rebuild a real trading day (2019-01-30, 368,366,634 messages) with zero unknown
+  references, overfills or malformed messages, 37 full-book validations and a Python
+  reference that matches the C++ book exactly on the first 50M messages. Measured on
+  one pinned core of a shared WSL2 laptop: parsing alone takes **18.0-21.5 ns per
+  message** (goal met), parse plus book **320.7-444.4 ns** (goal of 120 ns **not met**;
+  not yet profiled), peak RSS 0.17 GiB. The numbers vary a lot between runs.
+  [Method, goals and caveats](docs/performance-results.md#nasdaq-itch-50-order-book-november-13-2026).
 - **Measured performance work.** Profiling showed a memory-budget scan dominated
   session loading. Fixing it and loading an execution-only metadata view made a
   5.1M-quote session load **10× faster** with **63% less retained memory** and a
@@ -228,6 +236,9 @@ replay, dry runs, broker paper trading, graduation and live activation.
 - No strategy has qualified: none beat holding the same stocks after costs on unseen
   data. Passing engineering tests does not establish a trading edge.
 - Free IEX data is one exchange's feed, not consolidated NBBO or a full order book.
+  The ITCH order book is a separate engineering exercise on Nasdaq's free sample
+  days: there is no live ITCH feed, no strategy uses it, and the samples are used
+  locally only (Nasdaq publishes no license terms), never committed or published.
 - Historical replay cannot prove live network latency. Paper fills are simulated by
   the broker and look more generous than the project's own fill simulator.
 - The paper bot runs on a local computer: it pauses while the computer sleeps and
