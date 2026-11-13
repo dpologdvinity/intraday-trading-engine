@@ -92,3 +92,39 @@ the costs, and after 108 trials are not distinguishable from luck. The gated tre
 traded only 112 times at +55.7 bp, the only variant still positive at 3x costs; with
 so few trades, picked out of 108 tries, it is a lead to test on fresh data, not a
 result. No variant is frozen; the test years stay unseen.
+
+## Reinforcement learning: 16 more configurations (2026-11-12)
+
+The [pre-registered search](specs/2026-11-11-rl-daytrader-design.md): PPO on
+GPU-vectorized environments, three seeds per configuration ensembled, early stopping on
+2022, scored on 2023-2024 (trials 109 to 124; code 0efba1a, Kaggle T4, about 26 GPU
+hours). Track A trades intraday (decisions every 5 minutes, flat every night); track B
+decides at each open and holds 2 to 20 sessions. Holding the same 68 symbols: +97.2%,
+Sharpe 2.04.
+
+| Configuration | Total | Sharpe | Trades | Per trade | 3x costs |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| B, convolution, rich, differential Sharpe | +51.9% | 1.93 | 3,346 | +84 bp | +43.1% |
+| B, GRU, rich, differential Sharpe | +50.4% | 1.82 | 3,200 | +86 bp | +42.0% |
+| B, GRU, base, differential Sharpe | +52.3% | 1.80 | 3,044 | +93 bp | +44.2% |
+| B, other five | +37.0% to +47.7% | 1.37-1.70 | 1,724-3,324 | +80 to +154 bp | +32% to +42% |
+| A, GRU, rich, log return | +4.5% | 1.76 | 948 | +31 bp | +2.4% |
+| A, log-return configurations | -0.5% to +3.9% | -0.07 to 0.77 | 431-4,493 | -1 to +18 bp | -8.9% to +0.9% |
+| A, differential-Sharpe configurations | -16.8% to -19.5% | about -1.5 | 22,380-28,623 | -5 bp | about -50% |
+
+Best (by Sharpe): B, convolution, rich inputs, differential Sharpe reward. Edge over
+holding -5.6 bp a day (95% interval -13.6 to +2.4); deflated Sharpe ratio over 124
+trials 0.54; probability of backtest overfitting 0.23; +43.1% at 3x costs; it beat the
+random trades with its own holding times (+34.8%) and the news model (+47.8%) but not
+holding every session through the environment (+53.5%).
+
+**Decision: fails** the pre-registered bar (interval includes zero, deflated Sharpe
+below 0.95, PBO above 0.2, below one baseline). No configuration is frozen; the test
+years stay unseen.
+
+The daily track is the strongest result of the project: all eight configurations made
+money, held up at three times the costs, agreed across seeds, and beat random trades
+with the same timing, so the agent learned something. But it stays long only about
+half the time and gives up more of the market's rise than its timing earns back. The
+intraday track learned to stay selective with the plain return reward and churned with
+the differential Sharpe reward, whose per-step signal rewarded frequent small trades.
