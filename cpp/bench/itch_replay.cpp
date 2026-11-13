@@ -61,9 +61,13 @@ std::string optional_dollars(const std::optional<std::uint32_t>& price) {
   return price ? dollars(*price) : "-";
 }
 
-// The midpoint rounded half up to a whole 1/10,000 dollar.
+// The exact midpoint: half a 1/10,000 dollar is representable with 5 decimals.
 std::string mid_dollars(std::uint32_t bid, std::uint32_t ask) {
-  return dollars((std::uint64_t{bid} + ask + 1) / 2);
+  const std::uint64_t twice = std::uint64_t{bid} + ask;  // 1/20,000 dollars
+  char buf[40];
+  std::snprintf(buf, sizeof buf, "$%llu.%05llu", static_cast<ull>(twice / 20000),
+                static_cast<ull>(twice % 20000 * 5));
+  return buf;
 }
 
 std::string type_label(unsigned char code) {
@@ -147,6 +151,9 @@ int main(int argc, char** argv) {
 
   const ItchStats s = builder.stats();
   std::printf("filter: %s\n", symbols.empty() ? "all stocks" : "listed symbols only");
+  if (!symbols.empty()) {
+    std::printf("note: --symbols is set, so every counter below covers only the listed stocks\n");
+  }
   std::printf("messages: %llu\n", static_cast<ull>(s.read.messages));
   std::printf("by type:");
   for (std::size_t code = 0; code < s.read.by_type.size(); ++code) {
@@ -189,11 +196,15 @@ int main(int argc, char** argv) {
                 static_cast<ull>(info.trades), static_cast<ull>(info.volume),
                 optional_dollars(info.open_cross).c_str(),
                 optional_dollars(info.close_cross).c_str());
+    // The book is read after the last message, i.e. after the post-market session, when
+    // most books are empty; it is not the 16:00 closing price.
     if (bid && ask) {
-      std::printf(" best bid=%s best ask=%s mid=%s\n", dollars(bid->price).c_str(),
-                  dollars(ask->price).c_str(), mid_dollars(bid->price, ask->price).c_str());
+      std::printf(" | book at end of input (after the post-market session): best bid=%s "
+                  "best ask=%s mid=%s (exact)\n",
+                  dollars(bid->price).c_str(), dollars(ask->price).c_str(),
+                  mid_dollars(bid->price, ask->price).c_str());
     } else {
-      std::printf(" last book mid=-\n");
+      std::printf(" | book mid at end of input (after the post-market session): -\n");
     }
   }
   return 0;

@@ -80,3 +80,13 @@ if(HFTCORE_BUILD_TESTS)
   include(Catch)
   catch_discover_tests(hftcore_tests)
 endif()
+
+# End-to-end check of the replay CLI on a tiny synthetic file (needs both targets).
+if(HFTCORE_BUILD_TESTS AND HFTCORE_BUILD_BENCH)
+  add_executable(hftcore_itch_replay_check tests/itch_replay_check.cpp)
+  target_compile_options(hftcore_itch_replay_check PRIVATE ${HFTCORE_WARNINGS})
+  add_dependencies(hftcore_itch_replay_check hftcore_itch_replay)
+  add_test(NAME itch_replay_cli
+           COMMAND hftcore_itch_replay_check $<TARGET_FILE:hftcore_itch_replay>
+                   ${CMAKE_CURRENT_BINARY_DIR}/itch_replay_check.bin)
+endif()
