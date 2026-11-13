@@ -42,6 +42,7 @@ added at the end of each section. Detailed numbers live in the linked result pag
 | 19 | 10-25 | Hold for weeks or months, so costs matter less | Pre-registered two rules on daily bars of the 68 symbols: twelve-month momentum (top 10, monthly) and analyst-upgrade drift (hold 20 sessions); development 2016-2022, holdout 2023-2024 | Momentum beat the same symbols by +61 bp a month (development) and +75 bp (holdout, interval -100 to +277); analyst drift +24 and +52 bp per trade (holdout interval -28 to +140); both survive 3x costs | Both fail the pre-registered bar; first ideas that point the right way in both periods. Test years unused ([results](longer-horizons-results.md)) |
 | 20 | 11-06 | Forward-test momentum on paper | Built a monthly momentum runner (top 10 of 68 by the pre-registered 12-1 rule, parity-tested against the backtest) on a second paper account, 68 x $1,400 | November choice: SNDK, LITE, MU, STX, DELL, WDC, INTC, AMD, AMAT, LRCX | Running; a forward record needs years of months to tell an edge from luck |
 | 21 | 11-12 | Reinforcement learning, given a serious try | Pre-registered 16 PPO configurations on GPU-vectorized environments: intraday (5-minute decisions, flat nightly) and daily (2-20 session holds), three seeds each, about 26 Kaggle GPU hours | Daily track: all eight made money (best +51.9%, Sharpe 1.93, +43.1% at 3x costs) and beat random timing; intraday at best +4.5%; holding +97.2% (Sharpe 2.04); best edge -5.6 bp/day (-13.6 to +2.4), deflated Sharpe 0.54, PBO 0.23 | Fails; the closest any strategy has come. Test years unused ([results](ml-daytrader-results.md)) |
+| 22 | 11-12 | Post-earnings drift, held five sessions | Pre-registered two rules on the 60 stocks, with announcement times from free SEC EDGAR 8-K Item 2.02 filings (2,072 events) and consensus beats from 1,682 matched Benzinga EPS headlines; amended before any evaluation after a code review; development 2016-2022, holdout 2023-2024 | Consensus beats: -19 bp per trade (development), -0.3 bp (holdout); announcement-return proxy: +15 and +44 bp (holdout interval -18 to +104), survives 3x costs; misses fell 109 bp in development (not tradable long-only) | Both fail; beats show no drift, as the prior (Martineau 2022) predicted; the proxy points the right way like experiment 19. Test years unused ([results](earnings-drift-results.md)) |
 
 Related evidence from the owner's other project, candlebench: 20 classic candlestick
 patterns on 50 stocks (about 80,000 trades) showed no edge over random entry, even
@@ -53,6 +54,9 @@ before costs.
   roughly its round-trip cost.
 - The overnight effect is the one measurable edge so far, and it is about as large as
   the cost of trading it.
+- Longer holds help but have not been enough. Rules that hold for days to months
+  (experiments 19 and 22) point the right way after costs, but two holdout years are
+  too few to tell their effects from luck.
 - Simply holding the stocks earned more than any strategy tested, because it pays no
   trading costs. Any strategy must beat that, on data it never saw.
 - Live paper trading finds bugs that tests miss: in the first session, an opening
