@@ -152,7 +152,9 @@ int main(int argc, char** argv) {
   const ItchStats s = builder.stats();
   std::printf("filter: %s\n", symbols.empty() ? "all stocks" : "listed symbols only");
   if (!symbols.empty()) {
-    std::printf("note: --symbols is set, so every counter below covers only the listed stocks\n");
+    std::printf(
+        "note: --symbols is set; frame counters (through end of session) cover the whole input,\n"
+        "      'filtered' counts messages outside the filter, book counters cover listed stocks\n");
   }
   std::printf("messages: %llu\n", static_cast<ull>(s.read.messages));
   std::printf("by type:");
