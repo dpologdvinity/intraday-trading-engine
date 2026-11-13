@@ -1,7 +1,9 @@
 # Pre-registration: post-earnings drift
 
 Written and committed before any price around an earnings announcement was looked
-at. Experiment 22 in the [project history](../project-history.md).
+at. Experiment 22 in the [project history](../project-history.md). An
+[amendment](#amendment-2026-11-12-before-any-evaluation), also made before any
+evaluation, changes how rule 1 labels an event and what the parser rejects.
 
 ## Why
 
@@ -135,3 +137,45 @@ These are not part of the pass rule:
 With roughly 340 beats and 240 rule-2 trades in the holdout, the interval can only
 exclude zero for an effect of tens of basis points per trade. A failure means "not
 shown", which is recorded as such.
+
+## Amendment (2026-11-12, before any evaluation)
+
+A code review of the committed evaluation found that "the earliest match is used"
+ignores information that is public before the entry. No price had been computed
+when this amendment was written, and none has been computed since the original
+pre-registration. Changes:
+
+1. **Rule 1's label is the latest matched headline published before the entry
+   open.** The entry stays the first open after the first matched headline. A
+   correction or the adjusted figure, when it is out before that open, supersedes
+   the first report. Examples: Intel 2024-10-31 was first reported as a beat
+   ("$0.12 Beats $(0.02)") and corrected at 17:51 to a miss ("$(0.46)"); Disney
+   2024-02-07 was "Inline", then a beat ten minutes later; for Citigroup 2024-01-12
+   and Morgan Stanley 2024-01-16 the GAAP miss came minutes before the adjusted
+   beat. This changes 8 labels in 2016-2024, 4 of them in the holdout.
+2. **Strictly after.** The entry is the first open *strictly* after the headline, so
+   news published at 09:30:00 is not traded in that morning's opening auction. No
+   such case occurs in the data.
+3. **The parser also rejects** any headline containing "Not Compare" anywhere (not
+   only in place of the verb) and any rumor headline containing "Hearing". This
+   removes 7 matched events.
+4. **Stale headlines.** A headline more than four days older than its entry open is
+   not traded (only possible before the first stored session; no case occurs).
+5. **The test-year run** (`--final`) takes one named rule that passed the holdout
+   and needs the results doc in the HEAD commit (staged is not enough). The
+   controls are not run on the test years.
+6. **No bar after 2024-12-31 is read.** The cutoff is applied as the bar files are
+   read, rather than after loading.
+
+Coverage under these rules (2016-2024): 2,068 events, 1,682 with a headline (81%),
+1,415 beats at entry. The other rules, costs and the pass rule are unchanged.
+
+Known limits, recorded rather than fixed:
+
+- The news store keeps a headline's latest text with its first publication time, so
+  an in-place edit could change a label. 5 matched headlines were updated more than
+  an hour after publication.
+- Some Item 2.02 filings are not quarterly results: pre-announcements and segment
+  recasts (for example BAC 2024-01-08, C 2024-01-10, GOOGL 2023-04-20, CVX
+  2023-07-24, GE 2020-04-09), as well as TSLA's delivery reports. They rarely match an
+  EPS headline, but rule 2 trades them.
