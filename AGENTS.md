@@ -114,7 +114,7 @@ engine, and C++ tests under ASan/UBSan.
 
 - `git status` first; preserve unrelated changes and stage specific files.
 - Conventional Commits (`feat(trading): ...`, `fix: ...`, `docs: ...`), small and
-  scoped. No AI attribution or tool names in commit messages.
+  scoped. Naming the tools used is fine; never add `Co-Authored-By` trailers.
 - Trace behavior before editing; extend the responsible layer; prefer the standard
   library and installed dependencies. For bugs, write a failing regression test first.
 - Run focused test files locally and let CI run the full suite. Kill processes and
