@@ -45,6 +45,7 @@ days. Paper results are simulated money and do not establish an edge.
 ## More
 
 - [Demo walkthrough](demo.md)
+- [How this project was built with Claude Code](agent-workflow.md)
 - [Research readiness](research-readiness-results.md) and
   [free-data suitability](free-data-suitability-results.md)
 - [Research roadmap](research-improvement-roadmap.md)
