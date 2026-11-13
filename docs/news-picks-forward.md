@@ -37,6 +37,12 @@ broker; results over a few days cannot establish an edge.
 | 2026-11-11 | NBIS, WDC, STX | STX | 542.15 | 550.70 | +15.54 | +158 |
 | 2026-11-11 | NBIS, WDC, STX | WDC | 307.84 | 311.81 | +12.72 | +129 |
 | 2026-11-12 | BAC, AMZN, JPM | - | | | | |
+| 2026-11-13 | BA, NFLX, GE | AMZN | - | 267.71 | -2.17 | -22 |
+| 2026-11-13 | BA, NFLX, GE | BA | 171.54 | 171.31 | -1.32 | -13 |
+| 2026-11-13 | BA, NFLX, GE | BAC | - | 50.82 | +3.13 | +32 |
+| 2026-11-13 | BA, NFLX, GE | GE | 333.35 | 331.30 | -6.07 | -61 |
+| 2026-11-13 | BA, NFLX, GE | JPM | - | 345.17 | -0.32 | -3 |
+| 2026-11-13 | BA, NFLX, GE | NFLX | 62.74 | 62.30 | -6.91 | -70 |
 
 | Session | Net $ | Return on invested | Cumulative $ |
 | --- | ---: | ---: | ---: |
@@ -47,5 +53,6 @@ broker; results over a few days cannot establish an edge.
 | 2026-11-06 | -37.42 | -1.27% | -15.64 |
 | 2026-11-09 | +62.28 | +6.52% | +46.64 |
 | 2026-11-11 | +47.48 | +1.62% | +94.12 |
+| 2026-11-13 | -13.66 | -0.23% | +80.46 |
 
-Total +94.12 over 19 trades on 7 sessions.
+Total +80.46 over 25 trades on 8 sessions.
