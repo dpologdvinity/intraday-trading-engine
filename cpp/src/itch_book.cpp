@@ -3,6 +3,8 @@
 #include "hftcore/itch_book.hpp"
 
 #include <algorithm>
+#include <cassert>
+#include <cstring>
 
 namespace hftcore {
 
@@ -15,33 +17,42 @@ ItchBookBuilder::ItchBookBuilder(std::vector<std::string> symbols)
     : filter_(symbols.begin(), symbols.end()),
       filtering_(!symbols.empty()),
       allowed_(kLocates, filtering_ ? 0 : 1),
-      stocks_(kLocates) {
-  tail_.reserve(128);  // the longest known message is 50 bytes plus the prefix
-}
+      stocks_(kLocates) {}
 
 void ItchBookBuilder::feed(std::span<const std::uint8_t> data) {
   // Complete the carried frame first, taking only the bytes it still needs.
-  if (!tail_.empty()) {
-    if (tail_.size() < kLengthPrefix) {
-      const std::size_t take = std::min(kLengthPrefix - tail_.size(), data.size());
-      tail_.insert(tail_.end(), data.begin(), data.begin() + take);
+  if (tail_size_ != 0) {
+    if (tail_size_ < kLengthPrefix) {
+      const std::size_t take = std::min(kLengthPrefix - tail_size_, data.size());
+      append_tail(data.first(take));
       data = data.subspan(take);
-      if (tail_.size() < kLengthPrefix) return;
+      if (tail_size_ < kLengthPrefix) return;
     }
     const std::size_t need = kLengthPrefix + itch::load_be16(tail_.data());
-    const std::size_t take = std::min(need - tail_.size(), data.size());
-    tail_.insert(tail_.end(), data.begin(), data.begin() + take);
+    const std::size_t take = std::min(need - tail_size_, data.size());
+    append_tail(data.first(take));
     data = data.subspan(take);
-    if (tail_.size() < need) return;
+    if (tail_size_ < need) return;
     // Exactly one whole frame (or the end-of-session marker): parse it from the buffer.
-    itch::parse_binary_file(std::span<const std::uint8_t>(tail_), *this, read_);
-    tail_.clear();
+    itch::parse_binary_file(std::span<const std::uint8_t>(tail_.data(), tail_size_), *this,
+                            read_);
+    tail_size_ = 0;
   }
   const std::size_t used = itch::parse_binary_file(data, *this, read_);
-  tail_.assign(data.begin() + used, data.end());
+  append_tail(data.subspan(used));
 }
 
-void ItchBookBuilder::finish() { truncated_bytes_ = tail_.size(); }
+void ItchBookBuilder::append_tail(std::span<const std::uint8_t> bytes) {
+  // parse_binary_file stops only before a frame whose length prefix promises more bytes
+  // than remain, and the completion step above never takes more than the frame needs,
+  // so the carried tail stays shorter than one maximal frame and always fits.
+  assert(bytes.size() <= tail_.size() - tail_size_);
+  if (bytes.empty()) return;
+  std::memcpy(tail_.data() + tail_size_, bytes.data(), bytes.size());
+  tail_size_ += bytes.size();
+}
+
+void ItchBookBuilder::finish() { truncated_bytes_ = tail_size_; }
 
 ItchStats ItchBookBuilder::stats() const {
   ItchStats s;

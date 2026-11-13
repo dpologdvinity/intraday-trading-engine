@@ -537,6 +537,56 @@ TEST_CASE("a lone length-prefix byte is carried; finish counts it", "[itch_book]
   CHECK(b.stats().truncated_bytes == 1);
 }
 
+// A frame of the largest size the 2-byte length prefix allows: an unknown type, so it is
+// counted and skipped, with a 65,535-byte body.
+Bytes maximal_unknown_frame() {
+  Bytes body;
+  body.ch('?');
+  body.v.resize(65535, 0x5a);
+  return frame(body);
+}
+
+TEST_CASE("a maximal frame carried over many feeds is completed and parsed once", "[itch_book]") {
+  Bytes stream;
+  stream.append(directory(kAapl, "AAPL")).append(maximal_unknown_frame());
+  stream.append(add(kAapl, 1, 'B', 100, 1000));
+  ItchBookBuilder whole;
+  feed_all(whole, stream.v);
+  whole.finish();
+  REQUIRE(whole.stats().read.unknown_types == 1);
+  REQUIRE(whole.stats().live_orders == 1);
+
+  // One byte at a time (the tail grows to 65,536 bytes), then odd chunk sizes that split
+  // the prefix, the body and the following message.
+  for (std::size_t chunk :
+       {std::size_t{1}, std::size_t{7}, std::size_t{4093}, std::size_t{65536}}) {
+    ItchBookBuilder b;
+    for (std::size_t pos = 0; pos < stream.v.size(); pos += chunk) {
+      const std::size_t n = std::min(chunk, stream.v.size() - pos);
+      b.feed(std::span<const std::uint8_t>(stream.v.data() + pos, n));
+    }
+    b.finish();
+    CHECK(all_depth(whole.book()) == all_depth(b.book()));
+    CHECK(same_stats(whole.stats(), b.stats()));
+  }
+}
+
+TEST_CASE("the largest possible incomplete tail is carried and counted by finish", "[itch_book]") {
+  const Bytes full = maximal_unknown_frame();
+  // Everything but the last body byte: 2 + 65,535 - 1 bytes, the longest tail that exists.
+  const std::size_t carried = full.v.size() - 1;
+  for (std::size_t chunk : {carried, std::size_t{1000}}) {
+    ItchBookBuilder b;
+    for (std::size_t pos = 0; pos < carried; pos += chunk) {
+      const std::size_t n = std::min(chunk, carried - pos);
+      b.feed(std::span<const std::uint8_t>(full.v.data() + pos, n));
+    }
+    b.finish();
+    CHECK(b.stats().truncated_bytes == carried);
+    CHECK(b.stats().read.messages == 0);
+  }
+}
+
 TEST_CASE("the end-of-session marker split across feeds counts trailing bytes", "[itch_book]") {
   Bytes stream;
   stream.append(directory(kAapl, "AAPL")).u16(0).ch('t').ch('t');

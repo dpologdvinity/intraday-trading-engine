@@ -5,6 +5,7 @@
 // feed() calls. The rules are mirrored exactly by the Python reference in hft/itch.py.
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -84,7 +85,16 @@ class ItchBookBuilder {
   std::vector<StockInfo> stocks_;      // 65,536 entries indexed by locate
   OrderBook book_;
   itch::ReadStats read_;
-  std::vector<std::uint8_t> tail_;  // an incomplete frame carried between feed() calls
+  // Appends bytes to the carried tail (never reallocates; see kMaxFrame).
+  void append_tail(std::span<const std::uint8_t> bytes);
+
+  // The largest frame BinaryFILE can carry: the 2-byte length prefix plus a body of at
+  // most 65,535 bytes (the prefix is a big-endian uint16). A carried tail is always an
+  // incomplete frame, so it is shorter than this and a fixed buffer holds it with no
+  // heap allocation in feed().
+  static constexpr std::size_t kMaxFrame = 2 + 65535;
+  std::array<std::uint8_t, kMaxFrame> tail_{};  // an incomplete frame carried between feed() calls
+  std::size_t tail_size_ = 0;                   // bytes of tail_ in use
   std::uint64_t truncated_bytes_ = 0;
   std::uint64_t unknown_refs_ = 0, duplicate_refs_ = 0, overfills_ = 0, invalid_ = 0,
                 crossed_ = 0, filtered_ = 0;
