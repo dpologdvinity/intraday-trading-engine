@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 
+from hft.calendar import calendar_from_records
 from hft.logs import EventLog
 
 NS = 1_000_000_000
@@ -87,3 +88,24 @@ def test_markdown_lists_market_days_without_journal_rows_as_not_running(tmp_path
     assert "| 2025-10-07 | bot not running |" in text
     assert "| 2025-10-06 | none |" in text and "| 2025-10-08 | none |" in text
     assert "2025-10-03" not in text  # before the run started
+
+
+def test_markdown_counts_only_rows_inside_the_session_as_running(tmp_path):
+    """A restart after the close (the machine was off all session) is not a session run."""
+    records = [{"date": d, "open": "09:30", "close": "16:00"} for d in ("2025-10-06", "2025-10-07")]
+    windows = calendar_from_records(records)
+    stamps = iter(
+        [
+            windows[0].open_ns + 60 * NS,  # 2025-10-06 09:31 ET: running
+            windows[1].close_ns + 7 * 3600 * NS,  # 2025-10-07 23:00 ET: restarted after the close
+        ]
+    )
+    log = EventLog(tmp_path / "KO-1.jsonl", clock=lambda: next(stamps))
+    log.write("start", event_ns=1)
+    log.write("start", event_ns=1)
+    log.close()
+    module = _module()
+    sessions = module.load_sessions(tmp_path, windows)
+    text = module.markdown("demo", [], sessions, [w.session_id for w in windows])
+    assert "| 2025-10-06 | - |" in text
+    assert "| 2025-10-07 | bot not running |" in text

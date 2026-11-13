@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from hft.calendar import calendar_from_records, session_at
 from hft.logs import iter_log
 
 NEW_YORK = ZoneInfo("America/New_York")
@@ -49,14 +50,22 @@ def load_trades(log_dir):
     return trades
 
 
-def load_sessions(log_dir):
+def load_sessions(log_dir, windows=()):
     """{day: {"picks": [...], "fills": {symbol: [(signed quantity, price)]}}} for every
-    New York day on which the run wrote any journal row (it was running)."""
+    day on which the run was running.
+
+    With exchange session windows, only a journal row written during a session marks
+    that session as running: a restart after the close (the machine was off all day)
+    must not hide a missed session. Without windows, any row marks its New York day.
+    """
     sessions, seen = defaultdict(lambda: {"picks": None, "fills": defaultdict(list)}), set()
     for path in sorted(Path(log_dir).glob("*.jsonl")):
         symbol = path.name.split("-")[0]
         for row in iter_log(path):
-            sessions[exit_day(row["wall_ns"])]  # any row marks the day as running
+            if not windows:
+                sessions[exit_day(row["wall_ns"])]  # any row marks the day as running
+            elif window := session_at(windows, row["wall_ns"]):
+                sessions[window.session_id]  # a row during the session marks it as running
             if row.get("event") == "picks":
                 sessions[row["session"]]["picks"] = row["picks"]
             elif row.get("event") == "fill":
@@ -81,7 +90,8 @@ def markdown(run, trades, sessions, market_days=()):
     """Daily forward record: picks, average fill prices and results per session.
 
     Market days (session dates, YYYY-MM-DD) from the run's first journal day through
-    its last one with no journal row at all are listed as "bot not running".
+    its last one that are missing from `sessions` (no journal row during the session,
+    see `load_sessions`) are listed as "bot not running".
     """
     by_day = defaultdict(list)
     for t in trades:
@@ -179,11 +189,13 @@ def main():
         try:
             from hft.runtime import fetch_calendar
 
-            market_days = [r["date"] for r in fetch_calendar()]
+            windows = calendar_from_records(fetch_calendar())
         except (RuntimeError, OSError, KeyError, TypeError, ValueError) as error:
             print(f"warning: no market calendar ({error}); missed days are not listed")
-            market_days = []
-        text = markdown(args.run, trades, load_sessions(args.logs / args.run), market_days)
+            windows = []
+        sessions = load_sessions(args.logs / args.run, windows)
+        market_days = [w.session_id for w in windows]
+        text = markdown(args.run, trades, sessions, market_days)
         args.markdown.write_text(text)
 
 
