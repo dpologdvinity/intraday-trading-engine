@@ -27,11 +27,12 @@ npm --prefix frontend test && npm --prefix frontend run build && npm --prefix fr
 ```
 
 Changes under `cpp/` also need the C++ build, `ctest` and the parity tests; see
-[cpp/README.md](cpp/README.md) and [AGENTS.md](AGENTS.md#commands). Changes to the ITCH order book (`hft/itch.py`, the
-`itch`, `order_book` and `itch_book` units) must keep the C++ and Python books
-identical (`tests/test_itch_parity.py`, `scripts/itch_parity.py`); timing claims need
-the pinned-core bench described in [cpp/README.md](cpp/README.md). Nasdaq sample days
-are used locally only: never commit them or anything reconstructable from them.
+[cpp/README.md](cpp/README.md) and [AGENTS.md](AGENTS.md#commands). Changes to the ITCH
+order book (`hft/itch.py`, the `itch`, `order_book` and `itch_book` units) must keep the
+C++ and Python books identical (`tests/test_itch_parity.py`, `scripts/itch_parity.py`);
+timing claims need the pinned-core bench described in [cpp/README.md](cpp/README.md).
+Nasdaq sample days are used locally only: never commit them or anything reconstructable
+from them.
 
 ## Conventions
 

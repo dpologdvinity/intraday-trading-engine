@@ -5,8 +5,8 @@ with pybind11. It reproduces the Python reference engine bit for bit (bars, gaps
 warmup, features and rule decisions) and powers both backtests and the paper bot;
 see the [design](../docs/specs/2026-10-07-paper-trading-runner-design.md) and
 [measured results](../docs/performance-results.md). It also holds a separate Nasdaq
-ITCH 5.0 parser and order book (the last three components below), which no strategy
-uses; see its [design](../docs/specs/2026-11-13-itch-order-book-design.md) and
+ITCH 5.0 parser and order book (`itch`, `order_book` and `itch_book` below), which no
+strategy uses; see its [design](../docs/specs/2026-11-13-itch-order-book-design.md) and
 [results](../docs/performance-results.md#nasdaq-itch-50-order-book-november-13-2026).
 
 | Component | Purpose |

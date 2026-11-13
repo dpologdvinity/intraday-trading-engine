@@ -198,8 +198,9 @@ real trading day, and one of the three goals was missed.
   11,245,883,092 bytes decompressed (10,724.9 MiB), **368,366,634 messages**, which equals
   the count Nasdaq publishes for the day.
 - Messages by type: add `A` 162,970,455 and `F` 1,725,898; delete `D` 158,273,361;
-  replace `U` 27,222,746; execute `E` 8,096,995; cancel `X` 4,669,874; the other types
-  total 5,407,305 (trades, cross trades, directory, halts, imbalance and so on).
+  replace `U` 27,222,746; execute `E` 8,096,995; cancel `X` 4,669,874. The other types
+  total 5,407,305: execute-with-price `C` 158,886 and the non-book messages (trades,
+  cross trades, directory, halts, imbalance and so on).
 - License: Nasdaq publishes no terms for the samples, so the files are used locally
   only, in the git-ignored `data/itch/`. Raw or reconstructable data (messages, order
   books, per-order output) is never committed or published; this page contains only
@@ -234,6 +235,8 @@ real trading day, and one of the three goals was missed.
 | (a) per-run values | 22.4, 21.5, 20.9 | 20.3, 18.0, 17.1 |
 | (b) parse plus full book, median of 3 | 444.4 ns/msg (2.25 Mmsg/s) | 320.7 ns/msg (3.12 Mmsg/s) |
 | (b) per-run values | 444.4, 422.3, 457.8 | 296.7, 509.9, 320.7 |
+| (a) mean of 3 (total timed time over 3 passes) | 21.6 ns/msg | 18.5 ns/msg |
+| (b) mean of 3 (total timed time over 3 passes) | 441.5 ns/msg | 375.7 ns/msg |
 | (c) latency, all messages: p50 / p99 / p99.9 | 445.7 / 3,231.7 / 7,421.3 ns | 315.6 / 1,322.7 / 4,477.3 ns |
 | (c) max, all messages | 135.8 ms | 113.1 ms |
 | (c) `A` p50 / p99 / p99.9 | 363.4 / 2,669.1 / 5,290.6 ns | 270.7 / 951.6 / 3,759.0 ns |
@@ -251,13 +254,15 @@ result, and no quiet-machine measurement exists. As a cross-check, the unfiltere
 
 ### Goals
 
-Set in the design before measuring; the mean was the stated statistic, and the table
-uses the medians of three runs.
+Set in the design before measuring, on the mean ns per message. The table gives the
+medians of three runs, the means (total timed time of the three passes divided by
+3 x 368,366,634 messages) and every per-run value; the verdicts are the same on all of
+them.
 
 | Goal (one core, 2019-01-30 day) | Result | Status |
 | --- | --- | --- |
-| Parse only at or below 25 ns per message | 18.0 and 21.5 ns (every per-run value 17.1-22.4 ns) | Met |
-| Parse plus full book at or below 120 ns per message | 320.7 and 444.4 ns (per-run 296.7-509.9 ns), 2.7 to 3.7 times the goal | **Not met** |
+| Parse only at or below 25 ns per message | Means 18.5 and 21.6 ns; medians 18.0 and 21.5 ns (every per-run value 17.1-22.4 ns) | Met |
+| Parse plus full book at or below 120 ns per message | Means 375.7 and 441.5 ns; medians 320.7 and 444.4 ns (per-run 296.7-509.9 ns); the medians are 2.7 to 3.7 times the goal | **Not met** |
 | Peak RSS below 1 GiB | 173,616 kB (0.17 GiB) | Met |
 
 The full-book goal was missed in every one of the six runs, including the fastest
@@ -266,17 +271,18 @@ lookups, the sorted level vectors, cache misses on a 1.7M-order working set, or
 something else) has not been profiled; that is the next measured opportunity, and no
 optimization was attempted before reporting.
 
-Memory is the unfiltered `hftcore_itch_replay` maximum resident set under
-`/usr/bin/time -v`: 173,616 kB (175,544 kB with `--validate-every 10000000`). The
-bench's own `ru_maxrss` (709 and 710 MiB) is not the memory figure: it includes the
-mmapped input pages of about one 256 MiB window. The bench's sampled peak anonymous RSS
-(books and buffers, sampled between timed spans, so it can slightly underestimate an
-instantaneous peak) was 195 MiB in both runs.
+Memory is the unfiltered `hftcore_itch_replay` maximum resident set under `/usr/bin/time
+-v`: 173,616 kB (175,544 kB with `--validate-every 10000000`). The bench's own
+`ru_maxrss` (709 and 710 MiB) is not the memory figure: it includes the mmapped input
+pages that are resident at the time. The bench's sampled peak anonymous RSS (books and
+buffers, sampled between timed spans, so it can slightly underestimate an instantaneous
+peak) was 195 MiB in both runs.
 
 ### Verification
 
 - The message count equals the published 368,366,634. Unknown order references,
-  duplicate references, overfills and invalid (zero-share) orders are all 0. Unknown
+  duplicate references, overfills and invalid orders (zero shares or an unknown side)
+  are all 0. Unknown
   message types, malformed lengths, trailing bytes and truncated bytes are all 0.
 - The file has no end-of-session (zero-length) marker; the input ends on a frame
   boundary.
@@ -289,11 +295,11 @@ instantaneous peak) was 195 MiB in both runs.
 - `scripts/itch_parity.py` feeds identical bytes to the Python reference and the C++
   book and compares counters, every locate's stock summary, a full-depth snapshot and
   the FIFO queue of every level. On the first 5,000,000 messages (4,302 locates and
-  17,212 price levels with live orders) there were 0 mismatches; on the first
-  50,000,000 messages (8,694 locates, 661,217 levels) also 0. Those runs took 7.7 and 9.0 microseconds of user
-  CPU per message (Python reference, C++ book and comparison together), so the full
-  day was not compared; the books are known identical only on those prefixes (and on the seeded
-  random streams in `tests/test_itch_parity.py`).
+  17,212 price levels with live orders) there were 0 mismatches; on the first 50,000,000
+  messages (8,694 locates, 661,217 levels) also 0. Those runs took 7.7 and 9.0
+  microseconds of user CPU per message (Python reference, C++ book and comparison
+  together), so the full day was not compared; the books are known identical only on
+  those prefixes (and on the seeded random streams in `tests/test_itch_parity.py`).
 - Closing cross prices from `Q` messages in a run restricted to four symbols (63 s,
   peak 22,068 kB): AAPL $165.25, MSFT $106.38, SPY $267.44, QQQ $165.68. The end-of-input
   book is empty, so no comparison of the closing cross against a book mid is possible
@@ -302,17 +308,18 @@ instantaneous peak) was 195 MiB in both runs.
 ### Environment and limitations
 
 - Intel Core i7-1265U (12 logical CPUs; a hybrid CPU, and WSL2 does not show whether
-  core 2 is a performance or efficiency core), 15 GiB RAM, Linux 6.18.58.1 under WSL2,
-  on a laptop that was also running the two paper-trading bots (pinned to cores 4-5,
-  not touched). Measurements were pinned to core 2; whether the host shares physical
-  resources with the bots is not visible from inside WSL2.
-- The 10.7 GiB input is larger than the page cache WSL2 keeps free (about 10 GiB,
-  shared with the bots and Windows), so some pre-faulted pages were evicted again
-  before their timed span. Major page faults inside timed spans, totals over the three
-  runs of a pass: pass (a) 230 (run 1) and 15 (run 2); pass (b) 40 (run 1) and 140
-  (run 2). A repeat run did not remove them. Each is a disk read, which matters more
-  for pass (a) (8 s in total) than for pass (b) (minutes), but no rate here is free
-  of them.
+  logical CPU 2 is a performance or efficiency core), 15 GiB RAM, Linux 6.18.58.1 under
+  WSL2, on a laptop that was also running the two paper-trading bots (pinned to CPUs
+  4-5, not touched). Measurements were pinned to logical CPU 2; whether the host shares
+  physical resources with the bots is not visible from inside WSL2.
+- The 10.5 GiB input is larger than the memory available for the page cache: `free`
+  showed about 10 GiB available before the runs (shared with the bots and Windows). So
+  some pre-faulted pages were probably evicted again before their timed span (the
+  fault counts show it happened; the cause is inferred). Major page faults inside
+  timed spans, totals over the three runs of a pass: pass (a) 230 (run 1) and 15
+  (run 2); pass (b) 40 (run 1) and 140 (run 2). A repeat run did not remove them. Each
+  is a disk read, which matters more for pass (a) (about 6-8 s per run) than for
+  pass (b) (109-188 s per run), but no rate here is free of them.
 - Run-to-run variance is large (pass (b) per-run 296.7-509.9 ns; pass (c) p50 445.7 ns
   against 315.6 ns). Pass (c) times only the dispatch into the builder, after the timer
   overhead is subtracted.

@@ -68,7 +68,7 @@ HFT_REQUIRE_HFTCORE=1 .venv/bin/python -m pytest -q tests/test_engine_parity.py
 HFT_REQUIRE_HFTCORE=1 .venv/bin/python -m pytest -q tests/test_itch.py tests/test_itch_parity.py tests/test_itch_parity_script.py
 gzip -dc data/itch/<day>.NASDAQ_ITCH50.gz | cpp/build/hftcore_itch_replay -
 .venv/bin/python scripts/itch_parity.py <decompressed day> --messages 5000000
-taskset -c N cpp/build/hftcore_bench_itch <decompressed day> --repeat 3   # one pinned core
+taskset -c N cpp/build/hftcore_bench_itch <decompressed day> --repeat 3   # one core, never 4-5 (paper bots)
 ```
 
 Dashboard: build the frontend, then `.venv/bin/python -m hft dashboard --port 8765`

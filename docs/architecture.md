@@ -119,13 +119,13 @@ operator activation remain prerequisites for the live path.
   Standalone tools, `hftcore_bench_itch` and `hftcore_itch_replay`, run on a
   decompressed or piped sample day.
 
-The two groups share only the `id_set.hpp` hash mixer, the build and the Python module. No trading code
-imports `hft/itch.py` or `ItchBook`, and the engine's contracts (causal bars, feature
-schema v3) are unaffected. Data flow for ITCH is one way: sample file, framing,
-decoded messages, builder, per-stock books, aggregates. The books are rebuilt from
-messages and are not a source of quotes for the simulator or the paper bots. See the
-[design](specs/2026-11-13-itch-order-book-design.md) and
-[measured results](performance-results.md#nasdaq-itch-50-order-book-november-13-2026).
+The two groups share only the `id_set.hpp` hash mixer, the build and the Python module.
+No trading code imports `hft/itch.py` or `ItchBook`, and the engine's contracts (causal
+bars, feature schema v3) are unaffected. Data flow for ITCH is one way: sample file,
+framing, decoded messages, builder, per-stock books, aggregates. The books are rebuilt
+from messages and are not a source of quotes for the simulator or the paper bots. See
+the [design](specs/2026-11-13-itch-order-book-design.md) and [measured
+results](performance-results.md#nasdaq-itch-50-order-book-november-13-2026).
 
 ## Current measured stopping point
 
