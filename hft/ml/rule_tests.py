@@ -21,9 +21,9 @@ def side_costs(half_spreads, multiple=1.0):
 
 def drift(dates, opens, signal, costs, hold):
     """One record per trade: buy at the open of every row d where `signal[d, s]`, sell
-    at the open of row d + hold. Records hold the entry date, symbol index, net return,
-    the equal-weight benchmark over the same window (every symbol with both opens,
-    without costs) and the excess. Trades without both opens are skipped."""
+    at the open of row d + hold. Records hold the entry and exit dates, symbol index,
+    net return, the equal-weight benchmark over the same window (every symbol with both
+    opens, without costs) and the excess. Trades without both opens are skipped."""
     trades = []
     for d, s in zip(*np.nonzero(signal), strict=True):
         if d + hold >= len(dates):
@@ -37,6 +37,7 @@ def drift(dates, opens, signal, costs, hold):
         trades.append(
             {
                 "entry": str(dates[d]),
+                "exit": str(dates[d + hold]),
                 "symbol": int(s),
                 "net": net,
                 "benchmark": benchmark,
