@@ -177,7 +177,7 @@ def report(comparison: Comparison) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
     parser.add_argument("file", type=Path, help="decompressed ITCH BinaryFILE")
     parser.add_argument("--messages", type=int, required=True, help="frames to compare")
     parser.add_argument("--depth", type=int, default=10, help="snapshot depth (default 10)")
