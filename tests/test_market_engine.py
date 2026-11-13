@@ -116,10 +116,12 @@ def test_parse_strategy():
     assert parse_strategy("ema-crossover").is_rule
     spec = parse_strategy("model:artifacts/x/bundle")
     assert spec.name == "model" and spec.bundle == Path("artifacts/x/bundle")
-    for bad in ("", "model:", "momentum"):
+    scheduled = parse_strategy("momentum")
+    assert scheduled.is_scheduled and not scheduled.is_rule
+    for bad in ("", "model:", "mean-reversion"):
         with pytest.raises(ValueError):
             parse_strategy(bad)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # scheduled strategies never run on 5 s bars
         PyMarketEngine("X", "momentum")
     with pytest.raises(ValueError):
         make_market_engine("X", implementation="fpga")
