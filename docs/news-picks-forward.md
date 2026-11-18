@@ -43,6 +43,11 @@ broker; results over a few days cannot establish an edge.
 | 2026-11-13 | BA, NFLX, GE | GE | 333.35 | 331.30 | -6.07 | -61 |
 | 2026-11-13 | BA, NFLX, GE | JPM | - | 345.17 | -0.32 | -3 |
 | 2026-11-13 | BA, NFLX, GE | NFLX | 62.74 | 62.30 | -6.91 | -70 |
+| 2026-11-16 | TXN, TSLA, AMZN | - | | | | |
+| 2026-11-17 | ORCL, INTC, CSCO | AMZN | - | 258.25 | -14.21 | -144 |
+| 2026-11-17 | ORCL, INTC, CSCO | TSLA | - | 380.86 | -10.93 | -111 |
+| 2026-11-17 | ORCL, INTC, CSCO | TXN | - | 295.67 | +15.16 | +154 |
+| 2026-11-18 | bot not running | - | | | | |
 
 | Session | Net $ | Return on invested | Cumulative $ |
 | --- | ---: | ---: | ---: |
@@ -54,5 +59,6 @@ broker; results over a few days cannot establish an edge.
 | 2026-11-09 | +62.28 | +6.52% | +46.64 |
 | 2026-11-11 | +47.48 | +1.62% | +94.12 |
 | 2026-11-13 | -13.66 | -0.23% | +80.46 |
+| 2026-11-17 | -9.98 | -0.34% | +70.49 |
 
-Total +80.46 over 25 trades on 8 sessions.
+Total +70.49 over 28 trades on 9 sessions.
