@@ -12,6 +12,9 @@ broker; results over a few days cannot establish an edge.
 | 2026-11-11 | - | - | | | | |
 | 2026-11-12 | - | - | | | | |
 | 2026-11-13 | - | - | | | | |
+| 2026-11-16 | - | - | | | | |
+| 2026-11-17 | - | - | | | | |
+| 2026-11-18 | bot not running | - | | | | |
 
 | Session | Net $ | Return on invested | Cumulative $ |
 | --- | ---: | ---: | ---: |
